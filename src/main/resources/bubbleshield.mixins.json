@@ -4,6 +4,7 @@
   "package": "com.papack.bubbleshield.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "LivingEntityDamageMixin"
   ],
   "client": [
   ],
