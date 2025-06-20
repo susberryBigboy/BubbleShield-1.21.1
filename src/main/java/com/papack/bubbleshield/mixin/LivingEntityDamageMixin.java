@@ -30,7 +30,10 @@ public abstract class LivingEntityDamageMixin {
         }
 
         // --- ダメージが爆発によるものか、または発生源がクリーパーかを確認 ---
-        boolean isExplosionDamage = (source.isOf(DamageTypes.EXPLOSION) || source.isOf(DamageTypes.PLAYER_EXPLOSION) || source.isOf(DamageTypes.SONIC_BOOM));
+        boolean isExplosionDamage = (source.isOf(DamageTypes.EXPLOSION)
+                || source.isOf(DamageTypes.PLAYER_EXPLOSION)
+                || source.isOf(DamageTypes.SONIC_BOOM)
+                || source.isOf(DamageTypes.MOB_ATTACK));
 
         // source.getSource() がエンティティを返し、それがクリーパーであるかを確認
         // これにより、DamageTypes.EXPLOSIONでカバーしきれないクリーパー爆発も捕捉できる
@@ -43,7 +46,7 @@ public abstract class LivingEntityDamageMixin {
             }
         }
 
-        if (isExplosionDamage || isCreeperExplosionSource) { // どちらかの条件を満たせば処理続行
+        if (isExplosionDamage || isCreeperExplosionSource || source.isDirect()) { // どちらかの条件を満たせば処理続行
 
             Vec3d explosionOrigin = source.getPosition();
             // 爆発の中心が特定できない場合は、保護せずそのままダメージを適用
@@ -54,7 +57,7 @@ public abstract class LivingEntityDamageMixin {
             // --- 被ダメージエンティティがバブルシールド内にいるか確認 ---
             List<BubbleShieldEntity> nearbyShields = world.getEntitiesByType(
                     ModEntities.BUBBLE_SHIELD,
-                    self.getBoundingBox().expand(0.1),
+                    self.getBoundingBox().expand(0.5),
                     (shield) -> shield.getAnimatedScale(0.0f) >= 1.0f
             );
 
@@ -67,7 +70,7 @@ public abstract class LivingEntityDamageMixin {
             // 「爆発がシールド内なら通常通りの処理にしたい」ロジック
             boolean explosionInsideAnyShield = false;
             for (BubbleShieldEntity shield : nearbyShields) {
-                if (shield.getBoundingBox().contains(explosionOrigin)) {
+                if (shield.getBoundingBox().expand(-1.0).contains(explosionOrigin)) {
                     explosionInsideAnyShield = true;
                     break;
                 }
