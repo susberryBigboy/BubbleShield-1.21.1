@@ -12,7 +12,7 @@ public class ModItems {
     static {
         BUBBLE_SHIELD_ITEM = Registry.register(
                 Registries.ITEM,
-                Identifier.of("bubbleshield", "textures/item/bubble_shield_item"),
+                Identifier.of("bubbleshield", "bubble_shield_item"),
                 new BubbleShieldItem(new Item.Settings().maxCount(16))
         );
     }
