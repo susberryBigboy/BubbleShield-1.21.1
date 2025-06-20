@@ -26,35 +26,44 @@ public class BubbleShieldItemRenderer implements DynamicItemRenderer {
     private static final Identifier TEXTURE = Identifier.of("bubbleshield", "textures/entity/bubble_shield.png");
 
     public BubbleShieldItemRenderer() {
-        // BubbleShieldRenderer と同じ ModelPart 構築ロジックをここにコピーするか、
-        // BubbleShieldRenderer から ModelPart を取得する static メソッドを作る
         ModelData modelData = new ModelData();
         ModelPartData root = modelData.getRoot();
-        int texW = 16;
-        int texH = 16;
+        // ★★★ ここを実際のテクスチャサイズ (512x512) に合わせる ★★★
+        int texW = 512;
+        int texH = 512;
 
+        // 各cuboidのuv(u, v, width, height)を適切に設定します。
+        // ここでは、各面がテクスチャ全体 (512x512px) を使うように設定します。
+        // これにより、Minecraftが自動的にUVを計算するのではなく、
+        // 明示的にテクスチャのどの領域を面に貼るかを指定します。
+
+        // front, back: 奥行きが薄い (0.02f)。幅16.0f, 高さ16.0f の面
         root.addChild("front", ModelPartBuilder.create()
-                        .uv(0, 0)
+                        .uv(0, 0) // テクスチャ全体をマップ
                         .cuboid(-8.0f, -8.0f, -0.01f, 16.0f, 16.0f, 0.02f),
                 ModelTransform.pivot(0.0f, 0.0f, -8.0f));
         root.addChild("back", ModelPartBuilder.create()
-                        .uv(0, 0)
+                        .uv(0, 0) // テクスチャ全体をマップ
                         .cuboid(-8.0f, -8.0f, -0.01f, 16.0f, 16.0f, 0.02f),
                 ModelTransform.pivot(0.0f, 0.0f, 8.0f));
+
+        // left, right: 幅が薄い (0.02f)。高さ16.0f, 奥行き16.0f の面
         root.addChild("left", ModelPartBuilder.create()
-                        .uv(0, 0)
+                        .uv(0, 0) // テクスチャ全体をマップ
                         .cuboid(-0.01f, -8.0f, -8.0f, 0.02f, 16.0f, 16.0f),
                 ModelTransform.pivot(-8.0f, 0.0f, 0.0f));
         root.addChild("right", ModelPartBuilder.create()
-                        .uv(0, 0)
+                        .uv(0, 0) // テクスチャ全体をマップ
                         .cuboid(-0.01f, -8.0f, -8.0f, 0.02f, 16.0f, 16.0f),
                 ModelTransform.pivot(8.0f, 0.0f, 0.0f));
+
+        // top, bottom: 高さが薄い (0.02f)。幅16.0f, 奥行き16.0f の面
         root.addChild("top", ModelPartBuilder.create()
-                        .uv(0, 0)
+                        .uv(0, 0) // テクスチャ全体をマップ
                         .cuboid(-8.0f, -0.01f, -8.0f, 16.0f, 0.02f, 16.0f),
                 ModelTransform.pivot(0.0f, -8.0f, 0.0f));
         root.addChild("bottom", ModelPartBuilder.create()
-                        .uv(0, 0)
+                        .uv(0, 0) // テクスチャ全体をマップ
                         .cuboid(-8.0f, -0.01f, -8.0f, 16.0f, 0.02f, 16.0f),
                 ModelTransform.pivot(0.0f, 8.0f, 0.0f));
 
@@ -70,7 +79,6 @@ public class BubbleShieldItemRenderer implements DynamicItemRenderer {
 
         // アイテムのレンダリングは通常、エンティティよりも小さいスケールで行う必要があります。
         // ここでサイズと位置を調整して、アイテムが適切に見えるようにします。
-        // これらは Trial & Error で調整してください
         matrices.translate(0.5, 0.5, 0.5); // アイテムの中心に合わせる（0,0,0が基準点なので）
         matrices.scale(0.05f, 0.05f, 0.05f); // 非常に小さくスケール
 
@@ -81,7 +89,8 @@ public class BubbleShieldItemRenderer implements DynamicItemRenderer {
         //     matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(30));
         // }
 
-        itemCube.render(matrices, vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TEXTURE)), light, overlay);
+        itemCube.render(matrices, vertexConsumers.getBuffer(RenderLayer.getEntityTranslucentEmissive(TEXTURE)), light, overlay);
+
 
         matrices.pop();
     }
