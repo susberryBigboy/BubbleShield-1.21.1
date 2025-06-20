@@ -2,12 +2,11 @@ package com.papack.bubbleshield;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.projectile.ArrowEntity;
-import net.minecraft.entity.projectile.FireballEntity;
-import net.minecraft.entity.projectile.TridentEntity;
-import net.minecraft.entity.projectile.WindChargeEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.*;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -48,7 +47,7 @@ public class BubbleShieldEntity extends Entity {
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
-
+        // DataTrackerは現時点では使っていませんが、将来的な拡張のために必要です
     }
 
     @Override
@@ -61,7 +60,8 @@ public class BubbleShieldEntity extends Entity {
             return;
         }
 
-        updateBoundingBox(); // AABBを更新
+        float currentRadius = SHIELD_RADIUS * getAnimatedScale(0.0f);
+        updateBoundingBox(currentRadius);
 
         if (!getWorld().isClient) {
             Vec3d center = this.getPos();
@@ -71,125 +71,98 @@ public class BubbleShieldEntity extends Entity {
                 double distance = toEntity.length();
 
                 if (distance <= (double) SHIELD_RADIUS) {
-                    if (!getWorld().isClient) {
-
-                        // 弓矢（ArrowEntity）
-                        // 弓矢（ArrowEntity）
-                        switch (e) {
-                            case ArrowEntity arrow -> {
-                                // 所有者が放った弓矢かどうかを判定
-                                // ArrowEntity には getOwner() メソッドがあるのでそれを利用します
-                                if (arrow.getOwner() instanceof net.minecraft.entity.player.PlayerEntity ownerPlayer &&
-                                        ownerPlayer.getUuid().equals(this.getOwnerUuid())) {
-                                    // シールド所有者の弓矢は衝突判定を行わず、そのまま通過させる
-                                    continue; // 次のエンティティのチェックへ
-                                }
-
-                                // 所有者以外の弓矢、または所有者不明の弓矢の場合
-                                if (!reflectedProjectiles.contains(arrow.getUuid())) {
-                                    // 弓矢がシールド表面のどこに当たったかを取得（近似）
-                                    // エンティティの中心からシールドの中心へのベクトル (toEntity) を利用
-                                    Vec3d collisionPoint = center.add(toEntity.normalize().multiply(SHIELD_RADIUS));
-
-                                    arrow.setVelocity(0, -0.1, 0); // 落下方向へ
-                                    arrow.setNoClip(false);       // クリップ無効を解除
-                                    arrow.setCritical(false);     // クリティカルを解除
-                                    arrow.velocityModified = true; // 速度変更を適用
-
-                                    // 弓矢を当たった場所の少し外側に移動させてから落とす
-                                    // これにより、シールドの中心ではなく、当たった場所から落ちるように見えます
-                                    arrow.setPosition(collisionPoint.x, collisionPoint.y, collisionPoint.z);
-
-                                    getWorld().playSound(null, arrow.getX(), arrow.getY(), arrow.getZ(),
-                                            SoundEvents.ITEM_SHIELD_BLOCK, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                                    reflectedProjectiles.add(arrow.getUuid());
-                                }
-                                continue;
-                            }
-
-
-                            // トライデント（TridentEntity）
-                            case TridentEntity trident -> {
-                                if (!reflectedProjectiles.contains(trident.getUuid())) {
-                                    trident.setVelocity(0, -0.1, 0); // triden を使う
-                                    getWorld().playSound(null, trident.getX(), trident.getY(), trident.getZ(),
-                                            SoundEvents.ITEM_SHIELD_BLOCK, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                                    reflectedProjectiles.add(trident.getUuid());
-                                }
-                                continue;
-                            }
-
-
-                            // ウインドチャージ・火の玉 → 爆発させる（音なし）
-                            // FireballEntity は複数の種類があるので、適切なものを選択するか、共通の親クラスで判定
-                            case WindChargeEntity windCharge -> {
-                                e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(),
-                                        1.0f, World.ExplosionSourceType.MOB);
-                                windCharge.discard();
-                                continue;
-                            }
-                            case FireballEntity fireball -> {
-                                e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(),
-                                        1.0f, World.ExplosionSourceType.MOB);
-                                fireball.discard();
-                                continue;
-                            }
-
-
-                            // 敵対Mob
-                            case net.minecraft.entity.mob.MobEntity mob when mob.getTarget() != null -> {
-                                knockBackEntity(e, toEntity);
-                                continue;
-                            }
-
-
-                            // 怒ったゴーレム（簡易）
-                            // ゴーレムの種類が特定できれば、IronGolemEntity などで判定
-                            //case net.minecraft.entity.passive.IronGolemEntity ironGolemEntity -> {
-                            case net.minecraft.entity.passive.IronGolemEntity ignored -> {
-                                knockBackEntity(e, toEntity);
-                                continue;
-                            }
-
-
-                            // プレイヤー
-                            case net.minecraft.entity.player.PlayerEntity player -> {
-                                if (!player.getUuid().equals(this.getOwnerUuid()) && !allowOtherPlayersInside()) {
-                                    knockBackEntity(e, toEntity);
-                                }
-                            }
-                            default -> {
+                    // --- 投射物のオーナーチェックを共通化 ---
+                    if (e instanceof ProjectileEntity projectile) {
+                        if (projectile.getOwner() instanceof LivingEntity projectileOwner) {
+                            // 投射物のオーナーがPlayerで、かつシールドのオーナーと同じであれば、通過させる
+                            if (projectileOwner instanceof PlayerEntity ownerPlayer && isOwner(ownerPlayer.getUuid())) {
+                                continue; // この投射物はシールドを通り抜ける
                             }
                         }
+                        // ここに来るのは、オーナー以外の投射物、またはオーナー不明の投射物
+                        // そのため、以下のswitch文で反射・落下などの処理を行う
+                    }
 
-                        if (age % 100 == 0) {
-                            reflectedProjectiles.clear(); // 定期的に整理
+                    // --- エンティティのタイプごとの個別処理 ---
+                    switch (e) {
+                        case ArrowEntity arrow -> {
+                            // ここに来るのはオーナー以外の弓矢
+                            handleProjectileReaction(arrow, center, toEntity);
+                            continue;
                         }
+
+                        case TridentEntity trident -> {
+                            // ここに来るのはオーナー以外のトライデント
+                            handleProjectileReaction(trident, center, toEntity);
+                            continue;
+                        }
+
+                        case WindChargeEntity windCharge -> {
+                            // WindChargeは通常オーナー概念が薄いので、ここで直接爆発させる
+                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(),
+                                    1.0f, World.ExplosionSourceType.MOB);
+                            windCharge.discard();
+                            continue;
+                        }
+                        case FireballEntity fireball -> {
+                            // FireballもgetOwner()を持たない場合があるので、ここで直接爆発させる
+                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(),
+                                    1.0f, World.ExplosionSourceType.MOB);
+                            fireball.discard();
+                            continue;
+                        }
+
+                        // LivingEntity（Mobやプレイヤー）のノックバック処理
+                        case LivingEntity livingEntity -> {
+                            // PlayerEntityであれば、オーナー/許可設定に基づいてノックバックを判断
+                            if (livingEntity instanceof PlayerEntity player) {
+                                // オーナーであるか、他のプレイヤーを許可する設定であれば通過
+                                if (isOwner(player.getUuid()) || allowOtherPlayersInside()) {
+                                    continue; // 通過させる
+                                }
+                            }
+                            // それ以外のLivingEntity（Mob）またはノックバックが必要なプレイヤーはここでノックバック
+                            knockBackEntity(e, toEntity);
+                        }
+                        default -> {
+                            // その他のエンティティ（アイテムエンティティなど）に対するデフォルト処理
+                            // 必要に応じてここで処理を追加
+                        }
+                    }
+
+                    if (age % 100 == 0) {
+                        reflectedProjectiles.clear(); // 定期的に整理
                     }
                 }
             }
         }
     }
 
-
     public float getAnimatedScale(float tickDelta) {
         return Math.min((age + tickDelta) / (float) DEPLOY_ANIMATION_TICKS, 1.0f);
     }
 
-    private void updateBoundingBox() {
-        double r = SHIELD_RADIUS;
+    private void updateBoundingBox(float currentRadius) {
         setBoundingBox(new Box(
-                getX() - r, getY() - r, getZ() - r,
-                getX() + r, getY() + r, getZ() + r
+                getX() - currentRadius, getY() - currentRadius, getZ() - currentRadius,
+                getX() + currentRadius, getY() + currentRadius, getZ() + currentRadius
         ));
     }
 
     @Override
     protected void readCustomDataFromNbt(NbtCompound nbt) {
+        if (nbt.contains("OwnerUuid")) {
+            this.ownerUuid = nbt.getUuid("OwnerUuid");
+        }
+        this.age = nbt.getInt("Age");
     }
 
     @Override
     protected void writeCustomDataToNbt(NbtCompound nbt) {
+        if (this.ownerUuid != null) {
+            nbt.putUuid("OwnerUuid", this.ownerUuid);
+        }
+        nbt.putInt("Age", this.age);
     }
 
     @Override
@@ -214,6 +187,34 @@ public class BubbleShieldEntity extends Entity {
     @Nullable
     public UUID getOwnerUuid() {
         return ownerUuid;
+    }
+
+    private boolean isOwner(UUID uuid) {
+        return this.ownerUuid != null && this.ownerUuid.equals(uuid);
+    }
+
+    // --- 新しく追加するヘルパーメソッド ---
+    private void handleProjectileReaction(ProjectileEntity projectile, Vec3d center, Vec3d toEntity) {
+        if (!reflectedProjectiles.contains(projectile.getUuid())) {
+            // シールド表面の衝突点を近似計算
+            Vec3d collisionPoint = center.add(toEntity.normalize().multiply(SHIELD_RADIUS));
+
+            // 投射物を停止させ、落下させる
+            projectile.setVelocity(0, -0.1, 0);
+            if (projectile instanceof ArrowEntity arrow) {
+                arrow.setNoClip(false);
+                arrow.setCritical(false); // クリティカルもArrowEntityにのみ適用
+            } else if (projectile instanceof TridentEntity trident) {
+                trident.setNoClip(false);
+            }
+            projectile.velocityModified = true;
+            projectile.setPosition(collisionPoint.x, collisionPoint.y, collisionPoint.z);
+
+            // 音を鳴らす
+            getWorld().playSound(null, projectile.getX(), projectile.getY(), projectile.getZ(),
+                    SoundEvents.ITEM_SHIELD_BLOCK, SoundCategory.BLOCKS, 1.0f, 1.0f);
+            reflectedProjectiles.add(projectile.getUuid());
+        }
     }
 }
 
