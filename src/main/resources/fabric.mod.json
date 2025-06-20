@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "bubbleshield",
+  "version": "${version}",
+  "name": "BubbleShield",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/bubbleshield/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "com.papack.bubbleshield.client.BubbleShieldClient"
+    ],
+    "main": [
+      "com.papack.bubbleshield.Bubbleshield"
+    ]
+  },
+  "mixins": [
+    "bubbleshield.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}

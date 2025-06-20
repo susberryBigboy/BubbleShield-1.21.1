@@ -1,0 +1,89 @@
+package com.papack.bubbleshield.client;
+
+import com.papack.bubbleshield.BubbleShieldEntity;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.model.*;
+import net.minecraft.client.render.OverlayTexture;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.render.entity.EntityRendererFactory;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.Identifier;
+
+@Environment(EnvType.CLIENT)
+public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
+
+    private static final Identifier TEXTURE = Identifier.of("bubbleshield", "textures/entity/bubble_shield.png");
+    private final ModelPart cube;
+
+    public BubbleShieldRenderer(EntityRendererFactory.Context ctx) {
+        super(ctx);
+
+        // ① ModelData を作成
+        ModelData modelData = new ModelData();
+        ModelPartData root = modelData.getRoot();
+        int texW = 16;
+        int texH = 16;
+
+        // ② 各面を追加（6枚の板）
+        root.addChild("front", ModelPartBuilder.create()
+                        .uv(0, 0)
+                        .cuboid(-8.0f, -8.0f, -0.01f, 16.0f, 16.0f, 0.02f),
+                ModelTransform.pivot(0.0f, 0.0f, -8.0f));
+
+        root.addChild("back", ModelPartBuilder.create()
+                        .uv(0, 0)
+                        .cuboid(-8.0f, -8.0f, -0.01f, 16.0f, 16.0f, 0.02f),
+                ModelTransform.pivot(0.0f, 0.0f, 8.0f));
+
+        root.addChild("left", ModelPartBuilder.create()
+                        .uv(0, 0)
+                        .cuboid(-0.01f, -8.0f, -8.0f, 0.02f, 16.0f, 16.0f),
+                ModelTransform.pivot(-8.0f, 0.0f, 0.0f));
+
+        root.addChild("right", ModelPartBuilder.create()
+                        .uv(0, 0)
+                        .cuboid(-0.01f, -8.0f, -8.0f, 0.02f, 16.0f, 16.0f),
+                ModelTransform.pivot(8.0f, 0.0f, 0.0f));
+
+        root.addChild("top", ModelPartBuilder.create()
+                        .uv(0, 0)
+                        .cuboid(-8.0f, -0.01f, -8.0f, 16.0f, 0.02f, 16.0f),
+                ModelTransform.pivot(0.0f, -8.0f, 0.0f));
+
+        root.addChild("bottom", ModelPartBuilder.create()
+                        .uv(0, 0)
+                        .cuboid(-8.0f, -0.01f, -8.0f, 16.0f, 0.02f, 16.0f),
+                ModelTransform.pivot(0.0f, 8.0f, 0.0f));
+
+        // ③ TexturedModelData にして ModelPart を生成
+        TexturedModelData texturedModelData = TexturedModelData.of(modelData, texW, texH);
+        this.cube = texturedModelData.createModel();
+    }
+
+    @Override
+    public void render(BubbleShieldEntity entity, float yaw, float tickDelta,
+                       MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
+
+        float progress = entity.getAnimatedScale(tickDelta); // 0.0 ～ 1.0
+        float scale = 4.0f * progress;
+
+        matrices.push();
+        matrices.translate(0, 1.0f, 0); // プレイヤー中心に合わせる
+        matrices.scale(scale, scale, scale);
+
+        VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TEXTURE));
+        cube.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
+
+        matrices.pop();
+        super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
+    }
+
+    @Override
+    public Identifier getTexture(BubbleShieldEntity entity) {
+        return TEXTURE;
+    }
+}
