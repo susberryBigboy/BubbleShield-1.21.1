@@ -89,7 +89,7 @@ public class BubbleShieldItemRenderer implements DynamicItemRenderer {
         //     matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(30));
         // }
 
-        itemCube.render(matrices, vertexConsumers.getBuffer(RenderLayer.getEntityTranslucentEmissive(TEXTURE)), light, overlay);
+        itemCube.render(matrices, vertexConsumers.getBuffer(RenderLayer.getEyes(TEXTURE)), light, overlay);
 
 
         matrices.pop();
