@@ -3,106 +3,158 @@ package com.papack.bubbleshield.client;
 import com.papack.bubbleshield.BubbleShieldEntity;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.model.*;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.*;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
+import org.joml.Matrix4f;
 
 @Environment(EnvType.CLIENT)
 public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
 
     private static final Identifier TEXTURE = Identifier.of("bubbleshield", "textures/entity/bubble_shield.png");
-    private final ModelPart cube;
+
+    private static final float SHIELD_SIZE = 4.0f;
+    private static final float THICKNESS = 0.05f;
+
+    private static final float MIN_COORD = -SHIELD_SIZE / 2.0f; // -2.0f
+    private static final float MAX_COORD = SHIELD_SIZE / 2.0f;  // 2.0f
+
+    private static final float U_MIN = 0.0f;
+    private static final float V_MIN = 0.0f;
+    private static final float U_MAX = 1.0f;
+    private static final float V_MAX = 1.0f;
+
+    int fullBrightLight = 0xF000F0;
 
     public BubbleShieldRenderer(EntityRendererFactory.Context ctx) {
         super(ctx);
-
-        ModelData modelData = new ModelData();
-        ModelPartData root = modelData.getRoot();
-        int texW = 16; // ★もしテクスチャが512x512なら、ここを512にしてください。
-        int texH = 16; // ★もしテクスチャが512x512なら、ここを512にしてください。
-
-        // 各面を追加（6枚の板）
-        // 各cuboidの始点と厚み、pivotを慎重に設定します。
-        // 目標: 各面が、シールドの中心 (0,0,0) から見て外側に薄い板として存在する。
-
-        // front (北) 面: Z軸のマイナス方向。Zの終わりが-8.0fになるように。
-        // cuboid の z は、pivot からの相対位置で -8.0f の位置に板の開始が来るように調整
-        // 厚み 0.02f で、Z軸のマイナス方向に伸びる板
-        root.addChild("front", ModelPartBuilder.create()
-                        .uv(0, 0)
-                        .cuboid(-8.0f, -8.0f, -8.0f - 0.01f, 16.0f, 16.0f, 0.02f),
-                ModelTransform.pivot(0.0f, 0.0f, 0.0f)); // pivot を 0,0,0 にすることで、cuboid の座標がワールド座標と直結する
-
-        // back (南) 面: Z軸のプラス方向。Zの開始が8.0fになるように。
-        // 厚み 0.02f で、Z軸のプラス方向に伸びる板
-        root.addChild("back", ModelPartBuilder.create()
-                        .uv(0, 0)
-                        .cuboid(-8.0f, -8.0f, 8.0f - 0.01f, 16.0f, 16.0f, 0.02f), // Zの開始を 8.0f から少し内側へ
-                ModelTransform.pivot(0.0f, 0.0f, 0.0f));
-
-        // left (西) 面: X軸のマイナス方向。Xの終わりが-8.0fになるように。
-        // ★修正: cuboid のmirror引数を true に設定
-        // 厚み 0.02f で、X軸のマイナス方向に伸びる板
-        root.addChild("left", ModelPartBuilder.create()
-                        .uv(0, 0)
-                        .cuboid(-8.0f - 0.01f, -8.0f, -8.0f, 0.02f, 16.0f, 16.0f, true), // ここを修正 (mirror = true)
-                ModelTransform.pivot(0.0f, 0.0f, 0.0f));
-
-        // right (東) 面: X軸のプラス方向。Xの開始が8.0fになるように。
-        // ★修正: cuboid のmirror引数を true に設定
-        // 厚み 0.02f で、X軸のプラス方向に伸びる板
-        root.addChild("right", ModelPartBuilder.create()
-                        .uv(0, 0)
-                        .cuboid(8.0f - 0.01f, -8.0f, -8.0f, 0.02f, 16.0f, 16.0f, true), // ここを修正 (mirror = true)
-                ModelTransform.pivot(0.0f, 0.0f, 0.0f));
-
-        // top (上) 面: Y軸のマイナス方向。Yの終わりが-8.0fになるように。
-        // 厚み 0.02f で、Y軸のマイナス方向に伸びる板
-        root.addChild("top", ModelPartBuilder.create()
-                        .uv(0, 0)
-                        .cuboid(-8.0f, -8.0f - 0.01f, -8.0f, 16.0f, 0.02f, 16.0f),
-                ModelTransform.pivot(0.0f, 0.0f, 0.0f));
-
-        // bottom (下) 面: Y軸のプラス方向。Yの開始が8.0fになるように。
-        // 厚み 0.02f で、Y軸のプラス方向に伸びる板
-        root.addChild("bottom", ModelPartBuilder.create()
-                        .uv(0, 0)
-                        .cuboid(-8.0f, 8.0f - 0.01f, -8.0f, 16.0f, 0.02f, 16.0f),
-                ModelTransform.pivot(0.0f, 0.0f, 0.0f));
-
-        TexturedModelData texturedModelData = TexturedModelData.of(modelData, texW, texH);
-        this.cube = texturedModelData.createModel();
     }
 
     @Override
     public void render(BubbleShieldEntity entity, float yaw, float tickDelta,
                        MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
 
-        float progress = entity.getAnimatedScale(tickDelta); // 0.0 ～ 1.0
-        float scale = 4.0f * progress;
+        float currentScale = entity.getAnimatedScale(tickDelta);
 
         matrices.push();
-        matrices.translate(0, 1.0f, 0); // プレイヤー中心に合わせる (エンティティの足元が0,0,0なので、上に持ち上げる)
-        matrices.scale(scale, scale, scale);
+        matrices.translate(0, 1.0f, 0); // 中央に合わせる
+        matrices.scale(currentScale, currentScale, currentScale);
 
-        // RenderLayer.getEntityTranslucent はカリングを行いません。
-        // そのため、法線が反転していると裏面も描画されてZ-fightingや暗くなる現象が起きます。
-        // mirror = true で法線を強制的に反転させることで、この問題を解決できる可能性があります。
-        VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TEXTURE));
-        cube.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
+        MatrixStack.Entry entry = matrices.peek();
+        Matrix4f positionMatrix = entry.getPositionMatrix();
+
+        // RenderLayer.getEntityTranslucentEmissive を使用
+        VertexConsumer vc = vertexConsumers.getBuffer(BUBBLE_LAYER);
+
+
+        // 1. Front (北) 面: Z = MIN_COORD - THICKNESS (手前側)
+        // 表（正しい法線と反時計回り）
+        vc.vertex(positionMatrix, MIN_COORD, MIN_COORD, MIN_COORD - THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, -1.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MIN_COORD, MIN_COORD - THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, -1.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MAX_COORD, MIN_COORD - THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, -1.0f);
+        vc.vertex(positionMatrix, MIN_COORD, MAX_COORD, MIN_COORD - THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, -1.0f);
+        // 裏（法線を反転させ、頂点順序も反転）
+        vc.vertex(positionMatrix, MIN_COORD, MAX_COORD, MIN_COORD - THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, 1.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MAX_COORD, MIN_COORD - THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, 1.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MIN_COORD, MIN_COORD - THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, 1.0f);
+        vc.vertex(positionMatrix, MIN_COORD, MIN_COORD, MIN_COORD - THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, 1.0f);
+
+
+        // 2. Back (南) 面: Z = MAX_COORD + THICKNESS (奥側)
+        // 表（正しい法線と反時計回り）
+        vc.vertex(positionMatrix, MAX_COORD, MIN_COORD, MAX_COORD + THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, 1.0f);
+        vc.vertex(positionMatrix, MIN_COORD, MIN_COORD, MAX_COORD + THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, 1.0f);
+        vc.vertex(positionMatrix, MIN_COORD, MAX_COORD, MAX_COORD + THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, 1.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MAX_COORD, MAX_COORD + THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, 1.0f);
+        // 裏（法線を反転させ、頂点順序も反転）
+        vc.vertex(positionMatrix, MAX_COORD, MAX_COORD, MAX_COORD + THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, -1.0f);
+        vc.vertex(positionMatrix, MIN_COORD, MAX_COORD, MAX_COORD + THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, -1.0f);
+        vc.vertex(positionMatrix, MIN_COORD, MIN_COORD, MAX_COORD + THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, -1.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MIN_COORD, MAX_COORD + THICKNESS).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 0.0f, -1.0f);
+
+
+        // 3. Left (西) 面: X = MIN_COORD - THICKNESS (左側)
+        // 表（正しい法線 -X と反時計回り）
+        vc.vertex(positionMatrix, MIN_COORD - THICKNESS, MIN_COORD, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(-1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MIN_COORD - THICKNESS, MAX_COORD, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(-1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MIN_COORD - THICKNESS, MAX_COORD, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(-1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MIN_COORD - THICKNESS, MIN_COORD, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(-1.0f, 0.0f, 0.0f);
+        // 裏（法線反転 +X と時計回り）
+        vc.vertex(positionMatrix, MIN_COORD - THICKNESS, MIN_COORD, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MIN_COORD - THICKNESS, MAX_COORD, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MIN_COORD - THICKNESS, MAX_COORD, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MIN_COORD - THICKNESS, MIN_COORD, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(1.0f, 0.0f, 0.0f);
+
+
+        // 4. Right (東) 面: X = MAX_COORD + THICKNESS (右側)
+        // 表（正しい法線 +X と反時計回り）
+        vc.vertex(positionMatrix, MAX_COORD + THICKNESS, MIN_COORD, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD + THICKNESS, MAX_COORD, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD + THICKNESS, MAX_COORD, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD + THICKNESS, MIN_COORD, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(1.0f, 0.0f, 0.0f);
+        // 裏（法線反転 -X と時計回り）
+        vc.vertex(positionMatrix, MAX_COORD + THICKNESS, MIN_COORD, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(-1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD + THICKNESS, MAX_COORD, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(-1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD + THICKNESS, MAX_COORD, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(-1.0f, 0.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD + THICKNESS, MIN_COORD, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(-1.0f, 0.0f, 0.0f);
+
+
+        // 5. Top (上) 面: Y = MIN_COORD - THICKNESS (上側)
+        // 表（正しい法線 +Y と反時計回り）
+        vc.vertex(positionMatrix, MIN_COORD, MIN_COORD - THICKNESS, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 1.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MIN_COORD - THICKNESS, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 1.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MIN_COORD - THICKNESS, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 1.0f, 0.0f);
+        vc.vertex(positionMatrix, MIN_COORD, MIN_COORD - THICKNESS, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 1.0f, 0.0f);
+        // 裏（法線反転 -Y と時計回り）
+        vc.vertex(positionMatrix, MIN_COORD, MIN_COORD - THICKNESS, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, -1.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MIN_COORD - THICKNESS, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, -1.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MIN_COORD - THICKNESS, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, -1.0f, 0.0f);
+        vc.vertex(positionMatrix, MIN_COORD, MIN_COORD - THICKNESS, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, -1.0f, 0.0f);
+
+
+        // 6. Bottom (下) 面: Y = MAX_COORD + THICKNESS (下側)
+        // 表（正しい法線 -Y と反時計回り）
+        vc.vertex(positionMatrix, MIN_COORD, MAX_COORD + THICKNESS, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, -1.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MAX_COORD + THICKNESS, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, -1.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MAX_COORD + THICKNESS, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, -1.0f, 0.0f);
+        vc.vertex(positionMatrix, MIN_COORD, MAX_COORD + THICKNESS, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, -1.0f, 0.0f);
+        // 裏（法線反転 +Y と時計回り）
+        vc.vertex(positionMatrix, MIN_COORD, MAX_COORD + THICKNESS, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 1.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MAX_COORD + THICKNESS, MIN_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MAX).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 1.0f, 0.0f);
+        vc.vertex(positionMatrix, MAX_COORD, MAX_COORD + THICKNESS, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MAX, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 1.0f, 0.0f);
+        vc.vertex(positionMatrix, MIN_COORD, MAX_COORD + THICKNESS, MAX_COORD).color(1.0f, 1.0f, 1.0f, 1.0f).texture(U_MIN, V_MIN).overlay(OverlayTexture.DEFAULT_UV).light(fullBrightLight).normal(0.0f, 1.0f, 0.0f);
+
 
         matrices.pop();
-        super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
+        super.render(entity, yaw, tickDelta, matrices, vertexConsumers, fullBrightLight);
     }
+
 
     @Override
     public Identifier getTexture(BubbleShieldEntity entity) {
         return TEXTURE;
     }
+
+    private static final RenderLayer BUBBLE_LAYER = RenderLayer.of(
+            "bubble_shield_layer",
+            VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL,
+            VertexFormat.DrawMode.QUADS,
+            1536,
+            false,
+            true,
+            RenderLayer.MultiPhaseParameters.builder()
+                    .program(RenderPhase.ENTITY_TRANSLUCENT_EMISSIVE_PROGRAM)
+                    .texture(new RenderPhase.Texture(TEXTURE, false, false))
+                    .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
+                    //.depthTest(RenderPhase.LEQUAL_DEPTH_TEST)
+                    .cull(RenderPhase.ENABLE_CULLING)
+                    //.writeMaskState(RenderPhase.COLOR_MASK)
+                    .lightmap(RenderPhase.ENABLE_LIGHTMAP)
+                    .overlay(RenderPhase.ENABLE_OVERLAY_COLOR)
+                    .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
+                    .target(RenderPhase.ITEM_ENTITY_TARGET)
+                    .build(false)
+    );
 }
