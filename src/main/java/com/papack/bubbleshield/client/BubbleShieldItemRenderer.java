@@ -28,44 +28,46 @@ public class BubbleShieldItemRenderer implements DynamicItemRenderer {
     public BubbleShieldItemRenderer() {
         ModelData modelData = new ModelData();
         ModelPartData root = modelData.getRoot();
-        // ★★★ ここを実際のテクスチャサイズ (512x512) に合わせる ★★★
         int texW = 512;
         int texH = 512;
 
-        // 各cuboidのuv(u, v, width, height)を適切に設定します。
-        // ここでは、各面がテクスチャ全体 (512x512px) を使うように設定します。
-        // これにより、Minecraftが自動的にUVを計算するのではなく、
-        // 明示的にテクスチャのどの領域を面に貼るかを指定します。
+        float THICKNESS = 0.05f; // 全ての面の厚みを一括で定義
 
-        // front, back: 奥行きが薄い (0.02f)。幅16.0f, 高さ16.0f の面
+        // front (北) 面: Z軸のマイナス方向。Zの終わりが-8.0fになるように。
         root.addChild("front", ModelPartBuilder.create()
-                        .uv(0, 0) // テクスチャ全体をマップ
-                        .cuboid(-8.0f, -8.0f, -0.01f, 16.0f, 16.0f, 0.02f),
-                ModelTransform.pivot(0.0f, 0.0f, -8.0f));
+                        .uv(0, 0)
+                        .cuboid(-8.0f, -8.0f, -8.0f - THICKNESS, 16.0f, 16.0f, THICKNESS), // Z軸の開始を-8.0f - 厚み
+                ModelTransform.pivot(0.0f, 0.0f, 0.0f)); // このパーツ自体は原点に留まる
+
+        // back (南) 面: Z軸のプラス方向。Zの開始が8.0fになるように。
         root.addChild("back", ModelPartBuilder.create()
-                        .uv(0, 0) // テクスチャ全体をマップ
-                        .cuboid(-8.0f, -8.0f, -0.01f, 16.0f, 16.0f, 0.02f),
-                ModelTransform.pivot(0.0f, 0.0f, 8.0f));
+                        .uv(0, 0)
+                        .cuboid(-8.0f, -8.0f, 8.0f, 16.0f, 16.0f, THICKNESS), // Z軸の開始を8.0f
+                ModelTransform.pivot(0.0f, 0.0f, 0.0f));
 
-        // left, right: 幅が薄い (0.02f)。高さ16.0f, 奥行き16.0f の面
+        // left (西) 面: X軸のマイナス方向。Xの終わりが-8.0fになるように。
         root.addChild("left", ModelPartBuilder.create()
-                        .uv(0, 0) // テクスチャ全体をマップ
-                        .cuboid(-0.01f, -8.0f, -8.0f, 0.02f, 16.0f, 16.0f),
-                ModelTransform.pivot(-8.0f, 0.0f, 0.0f));
-        root.addChild("right", ModelPartBuilder.create()
-                        .uv(0, 0) // テクスチャ全体をマップ
-                        .cuboid(-0.01f, -8.0f, -8.0f, 0.02f, 16.0f, 16.0f),
-                ModelTransform.pivot(8.0f, 0.0f, 0.0f));
+                        .uv(0, 0)
+                        .cuboid(-8.0f - THICKNESS, -8.0f, -8.0f, THICKNESS, 16.0f, 16.0f), // X軸の開始を-8.0f - 厚み
+                ModelTransform.pivot(0.0f, 0.0f, 0.0f));
 
-        // top, bottom: 高さが薄い (0.02f)。幅16.0f, 奥行き16.0f の面
+        // right (東) 面: X軸のプラス方向。Xの開始が8.0fになるように。
+        root.addChild("right", ModelPartBuilder.create()
+                        .uv(0, 0)
+                        .cuboid(8.0f, -8.0f, -8.0f, THICKNESS, 16.0f, 16.0f), // X軸の開始を8.0f
+                ModelTransform.pivot(0.0f, 0.0f, 0.0f));
+
+        // top (上) 面: Y軸のマイナス方向。Yの終わりが-8.0fになるように。
         root.addChild("top", ModelPartBuilder.create()
-                        .uv(0, 0) // テクスチャ全体をマップ
-                        .cuboid(-8.0f, -0.01f, -8.0f, 16.0f, 0.02f, 16.0f),
-                ModelTransform.pivot(0.0f, -8.0f, 0.0f));
+                        .uv(0, 0)
+                        .cuboid(-8.0f, -8.0f - THICKNESS, -8.0f, 16.0f, THICKNESS, 16.0f), // Y軸の開始を-8.0f - 厚み
+                ModelTransform.pivot(0.0f, 0.0f, 0.0f));
+
+        // bottom (下) 面: Y軸のプラス方向。Yの開始が8.0fになるように。
         root.addChild("bottom", ModelPartBuilder.create()
-                        .uv(0, 0) // テクスチャ全体をマップ
-                        .cuboid(-8.0f, -0.01f, -8.0f, 16.0f, 0.02f, 16.0f),
-                ModelTransform.pivot(0.0f, 8.0f, 0.0f));
+                        .uv(0, 0)
+                        .cuboid(-8.0f, 8.0f, -8.0f, 16.0f, THICKNESS, 16.0f), // Y軸の開始を8.0f
+                ModelTransform.pivot(0.0f, 0.0f, 0.0f));
 
         TexturedModelData texturedModelData = TexturedModelData.of(modelData, texW, texH);
         this.itemCube = texturedModelData.createModel();
