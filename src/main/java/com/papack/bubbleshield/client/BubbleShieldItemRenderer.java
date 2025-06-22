@@ -28,8 +28,8 @@ public class BubbleShieldItemRenderer implements DynamicItemRenderer {
     public BubbleShieldItemRenderer() {
         ModelData modelData = new ModelData();
         ModelPartData root = modelData.getRoot();
-        int texW = 512;
-        int texH = 512;
+        int texW = 16;
+        int texH = 16;
 
         float THICKNESS = 0.05f; // 全ての面の厚みを一括で定義
 
