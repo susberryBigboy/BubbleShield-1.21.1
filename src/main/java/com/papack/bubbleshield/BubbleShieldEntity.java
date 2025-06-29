@@ -177,7 +177,7 @@ public class BubbleShieldEntity extends Entity {
     }
 
     private void updateBoundingBox(float currentRadius) {
-        double margin = 0.2; // 高速突入対策として少し広げる
+        double margin = 0.5; // 高速突入対策として少し広げる
         setBoundingBox(new Box(
                 getX() - currentRadius - margin, getY() - currentRadius - margin, getZ() - currentRadius - margin,
                 getX() + currentRadius + margin, getY() + currentRadius + margin, getZ() + currentRadius + margin
