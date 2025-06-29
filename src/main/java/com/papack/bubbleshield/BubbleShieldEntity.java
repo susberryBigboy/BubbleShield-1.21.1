@@ -177,11 +177,13 @@ public class BubbleShieldEntity extends Entity {
     }
 
     private void updateBoundingBox(float currentRadius) {
+        double margin = 0.2; // 高速突入対策として少し広げる
         setBoundingBox(new Box(
-                getX() - currentRadius, getY() - currentRadius, getZ() - currentRadius,
-                getX() + currentRadius, getY() + currentRadius, getZ() + currentRadius
+                getX() - currentRadius - margin, getY() - currentRadius - margin, getZ() - currentRadius - margin,
+                getX() + currentRadius + margin, getY() + currentRadius + margin, getZ() + currentRadius + margin
         ));
     }
+
 
     @Override
     protected void readCustomDataFromNbt(NbtCompound nbt) {
@@ -215,10 +217,22 @@ public class BubbleShieldEntity extends Entity {
     }
 
     private void knockBackEntity(Entity e, Vec3d toEntity) {
-        Vec3d knock = toEntity.normalize().multiply(0.5);
-        e.addVelocity(knock.x, 0.1, knock.z);
+        Vec3d knockDir = toEntity.normalize();
+        double currentDistance = toEntity.length();
+        double pushDistance = SHIELD_RADIUS - currentDistance;
+
+        // 1. シールドの境界外に強制移動（侵入を物理的に防ぐ）
+        if (pushDistance > 0) {
+            Vec3d pushPos = e.getPos().add(knockDir.multiply(pushDistance + 0.05)); // 少し外に余裕を持たせる
+            e.setPosition(pushPos.x, pushPos.y, pushPos.z);
+        }
+
+        // 2. ノックバックを付加（自然な物理演出）
+        Vec3d knockVelocity = knockDir.multiply(0.5);
+        e.addVelocity(knockVelocity.x, 0.1, knockVelocity.z);
         e.velocityModified = true;
     }
+
 
     public void setAllowOthers(boolean allow) {
         this.allowOthers = allow;
