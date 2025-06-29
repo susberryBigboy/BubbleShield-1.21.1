@@ -22,7 +22,7 @@ import java.util.UUID;
 import static com.papack.bubbleshield.ModEntities.BUBBLE_SHIELD;
 
 public class BubbleShieldEntity extends Entity {
-    private static final float SHIELD_RADIUS = 4.0f;
+    private static final float SHIELD_RADIUS = 5.0f;
     private static final int SHIELD_DURATION_TICKS = 200;
     private static final int DEPLOY_ANIMATION_TICKS = 20; // 展開アニメーション時間
     private static final float RETRACT_ANIMATION_MULTIPLIER = 0.5f; // 縮小アニメーション時間の倍率
