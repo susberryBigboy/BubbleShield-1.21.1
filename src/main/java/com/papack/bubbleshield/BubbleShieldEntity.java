@@ -32,6 +32,7 @@ public class BubbleShieldEntity extends Entity {
 
     @Nullable
     private UUID ownerUuid;
+    private boolean allowOthers = false;
 
     private int age = 0;
     private boolean spawnSoundPlayed = false;
@@ -192,6 +193,7 @@ public class BubbleShieldEntity extends Entity {
         // ★追加: retracting と retractAge もNBTから読み込む
         this.retracting = nbt.getBoolean("Retracting");
         this.retractAge = nbt.getInt("RetractAge");
+        this.allowOthers = nbt.getBoolean("AllowOthers");
     }
 
     @Override
@@ -204,6 +206,7 @@ public class BubbleShieldEntity extends Entity {
         // ★追加: retracting と retractAge もNBTに書き込む
         nbt.putBoolean("Retracting", this.retracting);
         nbt.putInt("RetractAge", this.retractAge);
+        nbt.putBoolean("AllowOthers", this.allowOthers);
     }
 
     @Override
@@ -217,18 +220,17 @@ public class BubbleShieldEntity extends Entity {
         e.velocityModified = true;
     }
 
+    public void setAllowOthers(boolean allow) {
+        this.allowOthers = allow;
+    }
+
     private boolean allowOtherPlayersInside() {
-        return false; // コンフィグなどに応じて切り替え可
+        return allowOthers;
     }
 
     public void setOwner(@Nullable UUID uuid) {
         this.ownerUuid = uuid;
     }
-
-    /*@Nullable
-    public UUID getOwnerUuid() {
-        return ownerUuid;
-    }*/
 
     private boolean isOwner(UUID uuid) {
         return this.ownerUuid != null && this.ownerUuid.equals(uuid);
