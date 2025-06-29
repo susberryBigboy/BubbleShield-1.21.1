@@ -225,10 +225,10 @@ public class BubbleShieldEntity extends Entity {
         this.ownerUuid = uuid;
     }
 
-    @Nullable
+    /*@Nullable
     public UUID getOwnerUuid() {
         return ownerUuid;
-    }
+    }*/
 
     private boolean isOwner(UUID uuid) {
         return this.ownerUuid != null && this.ownerUuid.equals(uuid);
