@@ -72,7 +72,6 @@ public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
         matrices.translate(0, 1.0f, 0); // プレイヤー中心に合わせる
         matrices.scale(scale, scale, scale);
 
-        //VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TEXTURE));
         VertexConsumer vc = vertexConsumers.getBuffer(BUBBLE_LAYER);
         cube.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
 
