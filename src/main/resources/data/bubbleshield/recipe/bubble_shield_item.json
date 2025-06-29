@@ -17,7 +17,7 @@
     }
   },
   "result": {
-    "item": "bubbleshield:bubble_shield",
+    "id": "bubbleshield:bubble_shield_item",
     "count": 4
   }
 }
