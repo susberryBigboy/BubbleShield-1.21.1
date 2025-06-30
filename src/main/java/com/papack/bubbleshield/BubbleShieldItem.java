@@ -24,23 +24,23 @@ public class BubbleShieldItem extends Item {
         if (!world.isClient) {
             if (!user.getItemCooldownManager().isCoolingDown(this)) {
                 boolean isSneaking = user.isSneaking();
-                boolean isHealingItem = this == ModItems.BASE_SHIELD_ITEM;
+                boolean isHealingItem = this == ModItems.HEALING_SHIELD_ITEM;
                 boolean isThrowable = this == ModItems.THROWABLE_SHIELD_ITEM;
 
-                if (isThrowable || isHealingItem) {
+                if (isThrowable) {
                     // 投擲タイプ
-                    ThrownBubbleShieldEntity thrown = new ThrownBubbleShieldEntity(ModEntities.THROWN_BUBBLE_SHIELD, world, user);
+                    ThrownBubbleShieldEntity thrown = new ThrownBubbleShieldEntity(world, user);
                     thrown.setItem(stack);
                     thrown.setOwner(user);
-                    thrown.setType(isHealingItem ? BubbleShieldType.HEALING : BubbleShieldType.BASE);
                     thrown.setAllowOthers(isSneaking);
+                    thrown.setType(BubbleShieldType.THROWN);
                     world.spawnEntity(thrown);
                 } else {
                     // 設置タイプ（ベース）
                     BubbleShieldEntity shield = new BubbleShieldEntity(world, user.getX(), user.getY(), user.getZ());
                     shield.setOwner(user.getUuid());
                     shield.setAllowOthers(isSneaking);
-                    shield.setType(BubbleShieldType.BASE);
+                    shield.setType(isHealingItem ? BubbleShieldType.HEALING : BubbleShieldType.BASE);
                     world.spawnEntity(shield);
                 }
 
