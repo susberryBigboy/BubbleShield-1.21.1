@@ -31,10 +31,9 @@ public class BubbleShieldItem extends Item {
                 if (throwable) {
                     // 投擲型バリア（まだ ThrownBubbleShieldEntity が必要）
                     ThrownBubbleShieldEntity thrown = new ThrownBubbleShieldEntity(world, user);
-                    thrown.setOwner(user.getUuid());
-                    thrown.setAllowOthers(allowOthers);
-                    thrown.setType(shieldType);
-                    thrown.setVelocity(user, user.getPitch(), user.getYaw(), 0.0F, 1.5F, 1.0F);
+                    thrown.setOwner(user);
+                    thrown.setOwnerSneaking(user.isSneaking());
+                    thrown.setType(BubbleShieldType.HEALING); // タイプも渡す
                     world.spawnEntity(thrown);
                     world.playSound(null, user.getX(), user.getY(), user.getZ(),
                             SoundEvents.ENTITY_EGG_THROW, SoundCategory.PLAYERS, 0.5f, 1.0f);

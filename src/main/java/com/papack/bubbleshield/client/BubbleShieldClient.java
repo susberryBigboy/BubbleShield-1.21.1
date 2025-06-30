@@ -15,7 +15,9 @@ public class BubbleShieldClient implements ClientModInitializer {
         // BubbleShieldEntity の型パラメータを明示的に指定
         register(ModEntities.BUBBLE_SHIELD, BubbleShieldRenderer::new);
 
-        BuiltinItemRendererRegistry.INSTANCE.register(ModItems.BUBBLE_SHIELD_ITEM, new BubbleShieldItemRenderer());
+        BuiltinItemRendererRegistry.INSTANCE.register(ModItems.BASE_SHIELD_ITEM, new BubbleShieldItemRenderer());
+        BuiltinItemRendererRegistry.INSTANCE.register(ModItems.HEALING_SHIELD_ITEM, new BubbleShieldItemRenderer());
+        BuiltinItemRendererRegistry.INSTANCE.register(ModItems.THROWABLE_SHIELD_ITEM, new BubbleShieldItemRenderer());
 
     }
 }

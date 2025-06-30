@@ -19,6 +19,17 @@ public class ModEntities {
             .trackedUpdateRate(1)
             .build();
 
+    public static final EntityType<ThrownBubbleShieldEntity> THROWN_BUBBLE_SHIELD =
+            Registry.register(
+                    Registries.ENTITY_TYPE,
+                    new Identifier(Bubbleshield.MOD_ID, "thrown_bubble_shield"),
+                    FabricEntityTypeBuilder.<ThrownBubbleShieldEntity>create(SpawnGroup.MISC, ThrownBubbleShieldEntity::new)
+                            .dimensions(EntityDimensions.fixed(0.5f, 0.5f))
+                            .trackRangeBlocks(4)
+                            .trackedUpdateRate(10)
+                            .build()
+            );
+
 
     public static void initialize() {
         Registry.register(
