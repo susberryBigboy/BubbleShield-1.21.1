@@ -35,7 +35,6 @@ public class BubbleShieldEntity extends Entity {
 
     @Nullable
     private UUID ownerUuid;
-    private boolean allowOthers = false;
 
     private int age = 0;
     private boolean spawnSoundPlayed = false;
