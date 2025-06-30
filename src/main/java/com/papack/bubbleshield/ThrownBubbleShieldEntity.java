@@ -9,6 +9,7 @@ import net.minecraft.world.World;
 
 public class ThrownBubbleShieldEntity extends ThrownItemEntity {
     private boolean ownerSneaking = false;
+    private boolean allowOthers;
     BubbleShieldType type;
 
     public ThrownBubbleShieldEntity(EntityType<? extends ThrownBubbleShieldEntity> type, World world) {
@@ -48,6 +49,10 @@ public class ThrownBubbleShieldEntity extends ThrownItemEntity {
 
     public void setType(BubbleShieldType type) {
         this.type = type;
+    }
+
+    public void setAllowOthers(boolean allow) {
+        this.allowOthers = allow;
     }
 }
 
