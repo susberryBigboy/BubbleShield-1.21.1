@@ -33,7 +33,7 @@ public class BubbleShieldItem extends Item {
                     ThrownBubbleShieldEntity thrown = new ThrownBubbleShieldEntity(world, user);
                     thrown.setOwner(user);
                     thrown.setOwnerSneaking(user.isSneaking());
-                    thrown.setType(BubbleShieldType.HEALING); // タイプも渡す
+                    thrown.setType(BubbleShieldType.THROWN); // タイプも渡す
                     world.spawnEntity(thrown);
                     world.playSound(null, user.getX(), user.getY(), user.getZ(),
                             SoundEvents.ENTITY_EGG_THROW, SoundCategory.PLAYERS, 0.5f, 1.0f);

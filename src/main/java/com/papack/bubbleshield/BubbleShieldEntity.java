@@ -52,6 +52,7 @@ public class BubbleShieldEntity extends Entity {
         super(type, world);
         this.noClip = true;
         this.setNoGravity(true);
+        System.out.println("[HEAL] "+type);
     }
 
     @Override

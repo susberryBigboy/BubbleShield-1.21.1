@@ -13,7 +13,7 @@ public class Bubbleshield implements ModInitializer {
 
 
         ModItems.initialize();
-        ModEntities.initialize();
+        ModEntities.register();
 
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(ModItems.BASE_SHIELD_ITEM));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(ModItems.HEALING_SHIELD_ITEM));

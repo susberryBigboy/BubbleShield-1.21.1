@@ -1,5 +1,6 @@
 package com.papack.bubbleshield;
 
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.thrown.ThrownItemEntity;
 import net.minecraft.item.Item;
@@ -9,6 +10,11 @@ import net.minecraft.world.World;
 public class ThrownBubbleShieldEntity extends ThrownItemEntity {
     private boolean ownerSneaking = false;
     BubbleShieldType type;
+
+    public ThrownBubbleShieldEntity(EntityType<? extends ThrownBubbleShieldEntity> type, World world) {
+        super(type, world);
+    }
+
 
     public ThrownBubbleShieldEntity(World world, LivingEntity owner) {
         super(ModEntities.THROWN_BUBBLE_SHIELD, owner, world);
@@ -42,10 +48,6 @@ public class ThrownBubbleShieldEntity extends ThrownItemEntity {
 
     public void setType(BubbleShieldType type) {
         this.type = type;
-    }
-
-    public BubbleShieldType getType() {
-        return type;
     }
 }
 
