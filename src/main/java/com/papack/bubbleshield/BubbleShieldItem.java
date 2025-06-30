@@ -25,6 +25,8 @@ public class BubbleShieldItem extends Item {
 
                 BubbleShieldEntity shield = new BubbleShieldEntity(world, pos.x, pos.y, pos.z);
                 shield.setOwner(user.getUuid()); // 所有者を登録
+                shield.setAllowOthers(user.isSneaking()); // スニーク中なら true、そうでなければ false
+
                 world.spawnEntity(shield);
 
                 // アイテムを1つ減らす

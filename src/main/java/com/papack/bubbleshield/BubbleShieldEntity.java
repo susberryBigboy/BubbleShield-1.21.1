@@ -22,7 +22,7 @@ import java.util.UUID;
 import static com.papack.bubbleshield.ModEntities.BUBBLE_SHIELD;
 
 public class BubbleShieldEntity extends Entity {
-    private static final float SHIELD_RADIUS = 4.0f;
+    private static final float SHIELD_RADIUS = 5.0f;
     private static final int SHIELD_DURATION_TICKS = 200;
     private static final int DEPLOY_ANIMATION_TICKS = 20; // 展開アニメーション時間
     private static final float RETRACT_ANIMATION_MULTIPLIER = 0.5f; // 縮小アニメーション時間の倍率
@@ -35,6 +35,7 @@ public class BubbleShieldEntity extends Entity {
 
     @Nullable
     private UUID ownerUuid;
+    private boolean allowOthers = false;
 
     private int age = 0;
     private boolean spawnSoundPlayed = false;
@@ -179,11 +180,13 @@ public class BubbleShieldEntity extends Entity {
     }
 
     private void updateBoundingBox(float currentRadius) {
+        double margin = 0.5; // 高速突入対策として少し広げる
         setBoundingBox(new Box(
-                getX() - currentRadius, getY() - currentRadius, getZ() - currentRadius,
-                getX() + currentRadius, getY() + currentRadius, getZ() + currentRadius
+                getX() - currentRadius - margin, getY() - currentRadius - margin, getZ() - currentRadius - margin,
+                getX() + currentRadius + margin, getY() + currentRadius + margin, getZ() + currentRadius + margin
         ));
     }
+
 
     @Override
     protected void readCustomDataFromNbt(NbtCompound nbt) {
@@ -195,6 +198,7 @@ public class BubbleShieldEntity extends Entity {
         // ★追加: retracting と retractAge もNBTから読み込む
         this.retracting = nbt.getBoolean("Retracting");
         this.retractAge = nbt.getInt("RetractAge");
+        this.allowOthers = nbt.getBoolean("AllowOthers");
     }
 
     @Override
@@ -207,6 +211,7 @@ public class BubbleShieldEntity extends Entity {
         // ★追加: retracting と retractAge もNBTに書き込む
         nbt.putBoolean("Retracting", this.retracting);
         nbt.putInt("RetractAge", this.retractAge);
+        nbt.putBoolean("AllowOthers", this.allowOthers);
     }
 
     @Override
@@ -215,23 +220,34 @@ public class BubbleShieldEntity extends Entity {
     }
 
     private void knockBackEntity(Entity e, Vec3d toEntity) {
-        Vec3d knock = toEntity.normalize().multiply(0.5);
-        e.addVelocity(knock.x, 0.1, knock.z);
+        Vec3d knockDir = toEntity.normalize();
+        double currentDistance = toEntity.length();
+        double pushDistance = SHIELD_RADIUS - currentDistance;
+
+        // 1. シールドの境界外に強制移動（侵入を物理的に防ぐ）
+        if (pushDistance > 0) {
+            Vec3d pushPos = e.getPos().add(knockDir.multiply(pushDistance + 0.05)); // 少し外に余裕を持たせる
+            e.setPosition(pushPos.x, pushPos.y, pushPos.z);
+        }
+
+        // 2. ノックバックを付加（自然な物理演出）
+        Vec3d knockVelocity = knockDir.multiply(0.5);
+        e.addVelocity(knockVelocity.x, 0.1, knockVelocity.z);
         e.velocityModified = true;
     }
 
+
+    public void setAllowOthers(boolean allow) {
+        this.allowOthers = allow;
+    }
+
     private boolean allowOtherPlayersInside() {
-        return false; // コンフィグなどに応じて切り替え可
+        return allowOthers;
     }
 
     public void setOwner(@Nullable UUID uuid) {
         this.ownerUuid = uuid;
     }
-
-    /*@Nullable
-    public UUID getOwnerUuid() {
-        return ownerUuid;
-    }*/
 
     private boolean isOwner(UUID uuid) {
         return this.ownerUuid != null && this.ownerUuid.equals(uuid);
