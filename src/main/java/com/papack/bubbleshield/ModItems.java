@@ -1,21 +1,20 @@
 package com.papack.bubbleshield;
 
 import net.minecraft.item.Item;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.util.Identifier;
+
+import static net.minecraft.item.Items.register;
 
 public class ModItems {
 
-    public static final Item BUBBLE_SHIELD_ITEM;
+    public static final Item BASE_SHIELD_ITEM = register("bubble_shield_base",
+            new BubbleShieldItem(new Item.Settings().maxCount(16), BubbleShieldType.BASE, false));
 
-    static {
-        BUBBLE_SHIELD_ITEM = Registry.register(
-                Registries.ITEM,
-                Identifier.of("bubbleshield", "bubble_shield_item"),
-                new BubbleShieldItem(new Item.Settings().maxCount(16))
-        );
-    }
+    public static final Item HEALING_SHIELD_ITEM = register("bubble_shield_heal",
+            new BubbleShieldItem(new Item.Settings().maxCount(16), BubbleShieldType.HEALING, false));
+
+    public static final Item THROWABLE_SHIELD_ITEM = register("bubble_shield_throwable",
+            new BubbleShieldItem(new Item.Settings().maxCount(16), BubbleShieldType.BASE, true));
+
 
     public static void initialize() {
     }
