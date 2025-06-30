@@ -24,10 +24,9 @@ public class BubbleShieldItem extends Item {
         if (!world.isClient) {
             if (!user.getItemCooldownManager().isCoolingDown(this)) {
                 boolean isSneaking = user.isSneaking();
-                boolean isHealingItem = this == ModItems.HEALING_SHIELD_ITEM;
-                boolean isThrowable = this == ModItems.THROWABLE_SHIELD_ITEM;
+                boolean isHealingItem = (shieldType == BubbleShieldType.HEALING);
 
-                if (isThrowable) {
+                if ((throwable)) {
                     // 投擲タイプ
                     ThrownBubbleShieldEntity thrown = new ThrownBubbleShieldEntity(world, user);
                     thrown.setItem(stack);
