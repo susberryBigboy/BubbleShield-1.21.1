@@ -28,9 +28,6 @@ public class BubbleShieldEntity extends Entity {
     private static final float RETRACT_ANIMATION_MULTIPLIER = 0.5f; // 縮小アニメーション時間の倍率
     private static final float RETRACT_ANIMATION_TICKS = DEPLOY_ANIMATION_TICKS * RETRACT_ANIMATION_MULTIPLIER; // 縮小アニメーション時間
 
-    private BubbleShieldType type = BubbleShieldType.BASE;
-    private boolean allowOthers = false;
-
     private final Set<UUID> reflectedProjectiles = new HashSet<>();
 
     @Nullable
