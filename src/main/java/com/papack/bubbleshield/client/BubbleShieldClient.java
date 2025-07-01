@@ -13,8 +13,8 @@ public class BubbleShieldClient implements ClientModInitializer {
     public void onInitializeClient() {
 
         register(ModEntities.BUBBLE_SHIELD, BubbleShieldRenderer::new);
-
         register(ModEntities.THROWN_BUBBLE_SHIELD, FlyingItemEntityRenderer::new
+
         );
     }
 }
