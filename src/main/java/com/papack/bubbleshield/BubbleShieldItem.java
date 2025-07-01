@@ -5,45 +5,68 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 public class BubbleShieldItem extends Item {
-    public BubbleShieldItem(Settings settings) {
+    private final BubbleShieldType shieldType;
+    private final boolean throwable;    // For future features
+
+    public BubbleShieldItem(Settings settings, BubbleShieldType type, boolean throwable) {
         super(settings);
+        this.shieldType = type;
+        this.throwable = throwable;
     }
 
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-        ItemStack itemStack = user.getStackInHand(hand); // 使用しているItemStackを取得
+        ItemStack stack = user.getStackInHand(hand);
 
-        // クライアント側ではクールダウンや消費の処理はしない
         if (!world.isClient) {
-            // クールダウン中ではないかチェック
             if (!user.getItemCooldownManager().isCoolingDown(this)) {
-                Vec3d pos = user.getPos();
+                boolean isSneaking = user.isSneaking();
 
-                BubbleShieldEntity shield = new BubbleShieldEntity(world, pos.x, pos.y, pos.z);
-                shield.setOwner(user.getUuid()); // 所有者を登録
-                shield.setAllowOthers(user.isSneaking()); // スニーク中なら true、そうでなければ false
+                switch (shieldType) {
 
-                world.spawnEntity(shield);
+                    case THROWN -> {
+                        // 投擲タイプ
+                        ThrownBubbleShieldEntity thrown = new ThrownBubbleShieldEntity(world, user);
+                        thrown.setItem(stack.copy());
+                        thrown.setOwner(user);
+                        thrown.setType(BubbleShieldType.THROWN);
+                        // 向いている方向に投げる速度を与える
+                        thrown.setVelocity(
+                                user,
+                                user.getPitch(),
+                                user.getYaw(),
+                                0.0f,     // roll（回転）は使わない
+                                1.5f,     // スピード（推奨: 1.5f～2.0f）
+                                1.0f      // 精度（0が一番正確）
+                        );
+                        world.spawnEntity(thrown);
+                    }
 
-                // アイテムを1つ減らす
-                if (!user.getAbilities().creativeMode) { // クリエイティブモードではない場合のみ消費
-                    itemStack.decrement(1);
+                    case BASE, HEALING, TELEPORT -> {
+                        // 設置タイプ（ベース）
+                        BubbleShieldEntity shield = new BubbleShieldEntity(world, user.getX(), user.getY(), user.getZ());
+                        shield.setOwner(user.getUuid());
+                        shield.setAllowOthers(isSneaking);
+                        shield.setType(shieldType);
+                        world.spawnEntity(shield);
+                    }
                 }
 
-                // 5秒間のクールダウンを追加 (100ティック = 5秒)
+
+                if (!user.getAbilities().creativeMode) {
+                    stack.decrement(1);
+                }
+
                 user.getItemCooldownManager().set(this, 100);
             } else {
-                // クールダウン中の場合は何もせず、使用をキャンセル
-                return TypedActionResult.pass(itemStack);
+                return TypedActionResult.pass(stack);
             }
         }
 
-        // 使用が成功した場合は、サーバー側とクライアント側で結果を返す
-        return TypedActionResult.success(itemStack, world.isClient());
+        return TypedActionResult.success(stack, world.isClient);
     }
-}
 
+}

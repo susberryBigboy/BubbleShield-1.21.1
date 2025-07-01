@@ -1,3 +1,6 @@
 {
-  "item.bubbleshield.bubble_shield_item": "bubble shield"
+  "item.bubbleshield.bubble_shield": "bubble shield",
+  "item.bubbleshield.bubble_shield_heal": "heal bubble shield",
+  "item.bubbleshield.bubble_shield_teleport": "teleport bubble shield",
+  "item.bubbleshield.bubble_shield_throwable": "throwable bubble shield"
 }

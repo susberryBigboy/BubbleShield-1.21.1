@@ -6,13 +6,18 @@ import net.minecraft.item.ItemGroups;
 
 
 public class Bubbleshield implements ModInitializer {
+    public static String MOD_ID = "bubbleshield";
 
     @Override
     public void onInitialize() {
 
-        ModItems.initialize();
-        ModEntities.initialize();
 
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(ModItems.BUBBLE_SHIELD_ITEM));
+        ModItems.initialize();
+        ModEntities.register();
+
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(ModItems.BASE_SHIELD_ITEM));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(ModItems.HEALING_SHIELD_ITEM));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(ModItems.THROWABLE_SHIELD_ITEM));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(ModItems.TELEPORT_SHIELD_ITEM));
     }
 }

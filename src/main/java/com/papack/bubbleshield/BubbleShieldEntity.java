@@ -5,6 +5,8 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.*;
 import net.minecraft.nbt.NbtCompound;
@@ -24,12 +26,16 @@ import static com.papack.bubbleshield.ModEntities.BUBBLE_SHIELD;
 public class BubbleShieldEntity extends Entity {
     private static final float SHIELD_RADIUS = 5.0f;
     private static final int SHIELD_DURATION_TICKS = 200;
-    private static final int DEPLOY_ANIMATION_TICKS = 20; // 展開アニメーション時間
-    private static final float RETRACT_ANIMATION_MULTIPLIER = 0.5f; // 縮小アニメーション時間の倍率
-    private static final float RETRACT_ANIMATION_TICKS = DEPLOY_ANIMATION_TICKS * RETRACT_ANIMATION_MULTIPLIER; // 縮小アニメーション時間
+    private static final int DEPLOY_ANIMATION_TICKS = 20;
+    private static final float RETRACT_ANIMATION_MULTIPLIER = 0.5f;
+    private static final float RETRACT_ANIMATION_TICKS = DEPLOY_ANIMATION_TICKS * RETRACT_ANIMATION_MULTIPLIER;
 
     private BubbleShieldType type = BubbleShieldType.BASE;
+    private static final TrackedData<String> TYPE = DataTracker.registerData(BubbleShieldEntity.class, TrackedDataHandlerRegistry.STRING);
+
     private boolean allowOthers = false;
+    private boolean hasTeleportedOwner = false;
+
 
     private final Set<UUID> reflectedProjectiles = new HashSet<>();
 
@@ -38,8 +44,9 @@ public class BubbleShieldEntity extends Entity {
 
     private int age = 0;
     private boolean spawnSoundPlayed = false;
-    private boolean retracting = false; // ★追加: 縮小中かどうかを示すフラグ
-    private int retractAge = 0; // ★追加: 縮小アニメーションの進行度
+    private boolean retracting = false;
+    private int retractAge = 0;
+
 
     public BubbleShieldEntity(World world, double x, double y, double z) {
         super(BUBBLE_SHIELD, world);
@@ -48,51 +55,48 @@ public class BubbleShieldEntity extends Entity {
         this.setNoGravity(true);
     }
 
-    public BubbleShieldEntity(EntityType<BubbleShieldEntity> bubbleShieldEntityEntityType, World world) {
-        super(bubbleShieldEntityEntityType, world);
+    public BubbleShieldEntity(EntityType<BubbleShieldEntity> type, World world) {
+        super(type, world);
         this.noClip = true;
         this.setNoGravity(true);
+        System.out.println("[HEAL] " + type);
     }
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
-        // DataTrackerは現時点では使っていませんが、将来的な拡張のために必要です
+        builder.add(TYPE, BubbleShieldType.BASE.name());
     }
 
     @Override
     public void tick() {
         super.tick();
 
-        // 出現音の再生
-        if (!getWorld().isClient && !spawnSoundPlayed && age == 0) { // age == 0 で最初のティックに再生
+        if (!getWorld().isClient && !spawnSoundPlayed && age == 0) {
             getWorld().playSound(null, getX(), getY(), getZ(),
                     SoundEvents.ENTITY_ILLUSIONER_CAST_SPELL,
                     SoundCategory.BLOCKS, 1.0f, 1.0f);
             spawnSoundPlayed = true;
         }
 
-        // ★修正: シールドの寿命が来たときの処理
-        if (!retracting) { // まだ縮小フェーズに入っていない場合
-            age++; // 通常の経過時間を進める
+        if (!retracting) {
+            age++;
             if (age >= SHIELD_DURATION_TICKS) {
-                retracting = true; // 縮小フェーズを開始
-                retractAge = 0; // 縮小アニメーションのカウンターをリセット
+                retracting = true;
+                retractAge = 0;
             }
-        } else { // 縮小フェーズ中の場合
-            retractAge++; // 縮小アニメーションの時間を進める
+        } else {
+            retractAge++;
             if (retractAge >= RETRACT_ANIMATION_TICKS) {
-                // 消滅音の再生 (サーバー側でのみ)
                 if (!getWorld().isClient()) {
                     getWorld().playSound(null, getX(), getY(), getZ(),
                             SoundEvents.BLOCK_BEACON_DEACTIVATE,
                             SoundCategory.BLOCKS, 1.0f, 1.0f);
                 }
-                discard(); // エンティティを消去
-                return; // ここで処理を終了
+                discard();
+                return;
             }
         }
 
-        // ★修正: アニメーションスケールの計算にretracting状態を考慮
         float currentScale = getAnimatedScale(0.0f);
         float currentRadius = SHIELD_RADIUS * currentScale;
         updateBoundingBox(currentRadius);
@@ -100,61 +104,61 @@ public class BubbleShieldEntity extends Entity {
         if (!getWorld().isClient) {
             Vec3d center = this.getPos();
 
-            for (Entity e : getWorld().getOtherEntities(this, getBoundingBox().expand(0.5))) {
+            for (Entity e : getWorld().getOtherEntities(this, getBoundingBox())) {
                 Vec3d toEntity = e.getPos().subtract(center);
                 double distance = toEntity.length();
 
-                // 縮小中のシールドからはエンティティを弾かないようにする（必要であれば調整）
-                if (retracting) {
-                    // 縮小中は物理的な影響を弱めるか、完全に無効にする
-                    // 例: 縮小中は投射物やLivingEntityに対する処理をスキップ
-                    if (e instanceof ProjectileEntity || e instanceof LivingEntity) {
-                        continue;
-                    }
+                if (retracting && (e instanceof ProjectileEntity || e instanceof LivingEntity)) {
+                    continue;
                 }
 
-                if (distance <= (double) SHIELD_RADIUS) { // シールド範囲内かチェック (SHIELD_RADIUSは最大半径)
-                    // --- 投射物のオーナーチェックを共通化 ---
+                // In Shield
+                if (distance <= SHIELD_RADIUS) {
+                    // Healing
+                    if (type == BubbleShieldType.HEALING && age % 20 == 0 && e instanceof PlayerEntity player) {
+                        if (isOwner(player.getUuid()) || allowOthers) {
+                            if (player.getHealth() < player.getMaxHealth()) {
+                                player.heal(2.0F);
+                            }
+                        }
+                    }
+
+                    // Teleport
+                    if (this.type == BubbleShieldType.TELEPORT && getAnimatedScale(0) >= 1.0f) {
+                        if (!hasTeleportedOwner) {
+                            TeleportHandler.tryTeleportOwnerOnly(this);
+                            hasTeleportedOwner = true;
+                        }
+                        TeleportHandler.tryTeleportOthers(this);
+                    }
+
+
                     if (e instanceof ProjectileEntity projectile) {
-                        if (projectile.getOwner() instanceof LivingEntity projectileOwner) {
-                            if (projectileOwner instanceof PlayerEntity ownerPlayer && isOwner(ownerPlayer.getUuid())) {
+                        if (projectile.getOwner() instanceof LivingEntity owner) {
+                            if (owner instanceof PlayerEntity player && isOwner(player.getUuid())) {
                                 continue;
                             }
                         }
                     }
 
-                    // --- エンティティのタイプごとの個別処理 ---
                     switch (e) {
-                        case ArrowEntity arrow -> {
-                            handleProjectileReaction(arrow, center, toEntity);
-                            continue;
-                        }
-                        case TridentEntity trident -> {
-                            handleProjectileReaction(trident, center, toEntity);
-                            continue;
-                        }
+                        case ArrowEntity arrow -> handleProjectileReaction(arrow, center, toEntity);
+                        case TridentEntity trident -> handleProjectileReaction(trident, center, toEntity);
                         case WindChargeEntity windCharge -> {
-                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(),
-                                    1.0f, World.ExplosionSourceType.MOB);
+                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(), 1.0f, World.ExplosionSourceType.MOB);
                             windCharge.discard();
-                            continue;
                         }
                         case FireballEntity fireball -> {
-                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(),
-                                    1.0f, World.ExplosionSourceType.MOB);
+                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(), 1.0f, World.ExplosionSourceType.MOB);
                             fireball.discard();
-                            continue;
                         }
-                        case LivingEntity livingEntity -> {
-                            if (livingEntity instanceof PlayerEntity player) {
-                                if (isOwner(player.getUuid()) || allowOtherPlayersInside()) {
-                                    continue;
-                                }
+                        case LivingEntity living -> {
+                            if (living instanceof PlayerEntity player) {
+                                if (isOwner(player.getUuid()) || allowOthers) continue;
                             }
                             knockBackEntity(e, toEntity);
                         }
                         default -> {
-                            // その他のエンティティ
                         }
                     }
 
@@ -166,96 +170,99 @@ public class BubbleShieldEntity extends Entity {
         }
     }
 
+    public void setType(BubbleShieldType type) {
+        this.type = type;
+        if (!this.getWorld().isClient) {
+            this.dataTracker.set(TYPE, type.name());
+        }
+    }
+
+    public BubbleShieldType getTypeEnum() {
+        if (this.getWorld().isClient) {
+            return BubbleShieldType.valueOf(this.dataTracker.get(TYPE));
+        }
+        return this.type;
+    }
+
+
     public float getAnimatedScale(float tickDelta) {
         if (retracting) {
-            // 縮小アニメーションのスケールを計算
-            // retractAge / RETRACT_ANIMATION_TICKS で 1.0 から 0.0 へ線形に減少
             float progress = (retractAge + tickDelta) / RETRACT_ANIMATION_TICKS;
-            return 1.0f - Math.min(progress, 1.0f); // 1.0から0.0に縮小
+            return 1.0f - Math.min(progress, 1.0f);
         } else {
-            // 展開アニメーションのスケールを計算
             return Math.min((age + tickDelta) / (float) DEPLOY_ANIMATION_TICKS, 1.0f);
         }
     }
 
-    private void updateBoundingBox(float currentRadius) {
-        double margin = 0.5; // 高速突入対策として少し広げる
+    private void updateBoundingBox(float radius) {
+        double margin = 0.5;
         setBoundingBox(new Box(
-                getX() - currentRadius - margin, getY() - currentRadius - margin, getZ() - currentRadius - margin,
-                getX() + currentRadius + margin, getY() + currentRadius + margin, getZ() + currentRadius + margin
+                getX() - radius - margin, getY() - radius - margin, getZ() - radius - margin,
+                getX() + radius + margin, getY() + radius + margin, getZ() + radius + margin
         ));
     }
 
-
     @Override
     protected void readCustomDataFromNbt(NbtCompound nbt) {
-        if (nbt.contains("OwnerUuid")) {
-            this.ownerUuid = nbt.getUuid("OwnerUuid");
-        }
+        if (nbt.contains("OwnerUuid")) this.ownerUuid = nbt.getUuid("OwnerUuid");
         this.age = nbt.getInt("Age");
         this.spawnSoundPlayed = nbt.getBoolean("SpawnSoundPlayed");
-        // ★追加: retracting と retractAge もNBTから読み込む
         this.retracting = nbt.getBoolean("Retracting");
         this.retractAge = nbt.getInt("RetractAge");
         this.allowOthers = nbt.getBoolean("AllowOthers");
+        this.hasTeleportedOwner = nbt.getBoolean("HasTeleportedOwner");
+        if (nbt.contains("ShieldType")) this.type = BubbleShieldType.valueOf(nbt.getString("ShieldType"));
     }
 
     @Override
     protected void writeCustomDataToNbt(NbtCompound nbt) {
-        if (this.ownerUuid != null) {
-            nbt.putUuid("OwnerUuid", this.ownerUuid);
-        }
-        nbt.putInt("Age", this.age);
-        nbt.putBoolean("SpawnSoundPlayed", this.spawnSoundPlayed);
-        // ★追加: retracting と retractAge もNBTに書き込む
-        nbt.putBoolean("Retracting", this.retracting);
-        nbt.putInt("RetractAge", this.retractAge);
-        nbt.putBoolean("AllowOthers", this.allowOthers);
+        if (ownerUuid != null) nbt.putUuid("OwnerUuid", ownerUuid);
+        nbt.putInt("Age", age);
+        nbt.putBoolean("SpawnSoundPlayed", spawnSoundPlayed);
+        nbt.putBoolean("Retracting", retracting);
+        nbt.putInt("RetractAge", retractAge);
+        nbt.putBoolean("AllowOthers", allowOthers);
+        nbt.putString("ShieldType", type.name());
+        nbt.putBoolean("HasTeleportedOwner", hasTeleportedOwner);
+
     }
 
     @Override
     public boolean damage(DamageSource source, float amount) {
-        return false; // Invulnerable
+        return false;
     }
 
     private void knockBackEntity(Entity e, Vec3d toEntity) {
         Vec3d knockDir = toEntity.normalize();
-        double currentDistance = toEntity.length();
-        double pushDistance = SHIELD_RADIUS - currentDistance;
-
-        // 1. シールドの境界外に強制移動（侵入を物理的に防ぐ）
+        double pushDistance = SHIELD_RADIUS - toEntity.length();
         if (pushDistance > 0) {
-            Vec3d pushPos = e.getPos().add(knockDir.multiply(pushDistance + 0.05)); // 少し外に余裕を持たせる
+            Vec3d pushPos = e.getPos().add(knockDir.multiply(pushDistance + 0.05));
             e.setPosition(pushPos.x, pushPos.y, pushPos.z);
         }
-
-        // 2. ノックバックを付加（自然な物理演出）
         Vec3d knockVelocity = knockDir.multiply(0.5);
         e.addVelocity(knockVelocity.x, 0.1, knockVelocity.z);
         e.velocityModified = true;
     }
 
-
     public void setAllowOthers(boolean allow) {
         this.allowOthers = allow;
-    }
-
-    private boolean allowOtherPlayersInside() {
-        return allowOthers;
     }
 
     public void setOwner(@Nullable UUID uuid) {
         this.ownerUuid = uuid;
     }
 
-    private boolean isOwner(UUID uuid) {
-        return this.ownerUuid != null && this.ownerUuid.equals(uuid);
+    public @Nullable UUID getOwnerUuid() {
+        return ownerUuid;
+    }
+
+    public boolean isOwner(UUID uuid) {
+        return ownerUuid != null && ownerUuid.equals(uuid);
     }
 
     private void handleProjectileReaction(ProjectileEntity projectile, Vec3d center, Vec3d toEntity) {
         if (!reflectedProjectiles.contains(projectile.getUuid())) {
             Vec3d collisionPoint = center.add(toEntity.normalize().multiply(SHIELD_RADIUS));
-
             projectile.setVelocity(0, -0.1, 0);
             if (projectile instanceof ArrowEntity arrow) {
                 arrow.setNoClip(false);
@@ -265,10 +272,13 @@ public class BubbleShieldEntity extends Entity {
             }
             projectile.velocityModified = true;
             projectile.setPosition(collisionPoint.x, collisionPoint.y, collisionPoint.z);
-
             getWorld().playSound(null, projectile.getX(), projectile.getY(), projectile.getZ(),
                     SoundEvents.ITEM_SHIELD_BLOCK, SoundCategory.BLOCKS, 1.0f, 1.0f);
             reflectedProjectiles.add(projectile.getUuid());
         }
+    }
+
+    public boolean allowsOthers() {
+        return allowOthers;
     }
 }
