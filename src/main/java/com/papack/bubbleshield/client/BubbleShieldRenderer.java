@@ -86,7 +86,8 @@ public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
         // テレポートタイプかどうかでレイヤー切り替え
         VertexConsumer vc;
         switch (entity.getTypeEnum()) {
-            case TELEPORT -> vc = vertexConsumers.getBuffer(RenderLayer.getEndPortal());
+            // case TELEPORT -> vc = vertexConsumers.getBuffer(RenderLayer.getEndPortal());  Shaders Pack を使うと表示されなくなる
+            case TELEPORT -> vc = vertexConsumers.getBuffer(BUBBLE_LAYER_TELEPORT);
             case THROWN -> vc = vertexConsumers.getBuffer(BUBBLE_LAYER_THROWABLE);
             case HEALING -> vc = vertexConsumers.getBuffer(BUBBLE_LAYER_HEAL);
             default -> vc = vertexConsumers.getBuffer(BUBBLE_LAYER);
@@ -157,6 +158,25 @@ public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
             RenderLayer.MultiPhaseParameters.builder()
                     .program(RenderPhase.ENTITY_TRANSLUCENT_EMISSIVE_PROGRAM)
                     .texture(new RenderPhase.Texture(TEXTURE_THROWABLE, false, false))
+                    .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
+                    .cull(RenderPhase.ENABLE_CULLING)
+                    .lightmap(RenderPhase.ENABLE_LIGHTMAP)
+                    .overlay(RenderPhase.ENABLE_OVERLAY_COLOR)
+                    .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
+                    .target(RenderPhase.ITEM_ENTITY_TARGET)
+                    .build(false)
+    );
+
+    private static final RenderLayer BUBBLE_LAYER_TELEPORT = RenderLayer.of(
+            "bubble_shield_layer",
+            VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL,
+            VertexFormat.DrawMode.QUADS,
+            1536,
+            true,
+            true,
+            RenderLayer.MultiPhaseParameters.builder()
+                    .program(RenderPhase.ENTITY_TRANSLUCENT_EMISSIVE_PROGRAM)
+                    .texture(new RenderPhase.Texture(TEXTURE_TELEPORT, false, false))
                     .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
                     .cull(RenderPhase.ENABLE_CULLING)
                     .lightmap(RenderPhase.ENABLE_LIGHTMAP)
