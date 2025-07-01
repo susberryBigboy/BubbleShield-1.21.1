@@ -5,6 +5,8 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.*;
 import net.minecraft.nbt.NbtCompound;
@@ -29,6 +31,8 @@ public class BubbleShieldEntity extends Entity {
     private static final float RETRACT_ANIMATION_TICKS = DEPLOY_ANIMATION_TICKS * RETRACT_ANIMATION_MULTIPLIER;
 
     private BubbleShieldType type = BubbleShieldType.BASE;
+    private static final TrackedData<String> TYPE = DataTracker.registerData(BubbleShieldEntity.class, TrackedDataHandlerRegistry.STRING);
+
     private boolean allowOthers = false;
     private boolean hasTeleportedOwner = false;
 
@@ -60,6 +64,7 @@ public class BubbleShieldEntity extends Entity {
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
+        builder.add(TYPE, BubbleShieldType.BASE.name());
     }
 
     @Override
@@ -167,9 +172,15 @@ public class BubbleShieldEntity extends Entity {
 
     public void setType(BubbleShieldType type) {
         this.type = type;
+        if (!this.getWorld().isClient) {
+            this.dataTracker.set(TYPE, type.name());
+        }
     }
 
     public BubbleShieldType getTypeEnum() {
+        if (this.getWorld().isClient) {
+            return BubbleShieldType.valueOf(this.dataTracker.get(TYPE));
+        }
         return this.type;
     }
 
@@ -241,7 +252,7 @@ public class BubbleShieldEntity extends Entity {
         this.ownerUuid = uuid;
     }
 
-    public @Nullable UUID getOwnerUuid(){
+    public @Nullable UUID getOwnerUuid() {
         return ownerUuid;
     }
 

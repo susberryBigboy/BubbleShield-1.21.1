@@ -1,30 +1,6 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "item/handheld",
   "textures": {
     "layer0": "bubbleshield:item/bubble_shield_heal"
-  },
-  "loader": "fabric:item",
-  "display": {
-    "thirdperson_righthand": {
-      "rotation": [ 0, 90, -35 ],
-      "translation": [ 0, 1.25, -3.5 ],
-      "scale": [ 0.85, 0.85, 0.85 ]
-    },
-    "firstperson_righthand": {
-      "rotation": [ 0, -90, 25 ],
-      "translation": [ 1.13, 3.2, 1.13 ],
-      "scale": [ 0.68, 0.68, 0.68 ]
-    },
-    "fixed": {
-      "rotation": [ 0, 180, 0 ],
-      "translation": [ 0, 0, 0 ],
-      "scale": [ 0.5, 0.5, 0.5 ]
-    },
-    "gui": {
-      "rotation": [ 30, 225, 0 ],
-      "translation": [ 0, 0, 0 ],
-      "scale": [ 0.625, 0.625, 0.625 ]
-    }
-  },
-  "overrides": []
+  }
 }
