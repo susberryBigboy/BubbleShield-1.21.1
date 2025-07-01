@@ -3,6 +3,7 @@ package com.papack.bubbleshield.client;
 // BubbleShieldEntityが必要
 // あなたのアイテムクラス
 
+import com.papack.bubbleshield.Bubbleshield;
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry.DynamicItemRenderer;
 import net.minecraft.client.model.*;
 import net.minecraft.client.render.RenderLayer;
@@ -23,7 +24,7 @@ public class BubbleShieldItemRenderer implements DynamicItemRenderer {
     // (例: private static ModelPart SHIELD_MODEL;)
 
     private final ModelPart itemCube;
-    private static final Identifier TEXTURE = Identifier.of("bubbleshield", "textures/entity/bubble_shield.png");
+    private static final Identifier TEXTURE = Identifier.of(Bubbleshield.MOD_ID, "textures/entity/bubble_shield.png");
 
     public BubbleShieldItemRenderer() {
         ModelData modelData = new ModelData();
@@ -78,22 +79,10 @@ public class BubbleShieldItemRenderer implements DynamicItemRenderer {
                        VertexConsumerProvider vertexConsumers, int light, int overlay) {
 
         matrices.push();
-
-        // アイテムのレンダリングは通常、エンティティよりも小さいスケールで行う必要があります。
-        // ここでサイズと位置を調整して、アイテムが適切に見えるようにします。
         matrices.translate(0.5, 0.5, 0.5); // アイテムの中心に合わせる（0,0,0が基準点なので）
         matrices.scale(0.05f, 0.05f, 0.05f); // 非常に小さくスケール
 
-        // GUIや三人称視点での追加の回転や平行移動が必要な場合があります
-        // mode に応じて matrices を操作することも可能です。
-        // if (mode == ModelTransformationMode.GUI) {
-        //     matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(225));
-        //     matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(30));
-        // }
-
         itemCube.render(matrices, vertexConsumers.getBuffer(RenderLayer.getEyes(TEXTURE)), light, overlay);
-
-
         matrices.pop();
     }
 }

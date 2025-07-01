@@ -1,7 +1,7 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "bubbleshield:item/bubble_shield_item"
+    "layer0": "bubbleshield:item/bubble_shield"
   },
   "loader": "fabric:item",
   "display": {

@@ -30,6 +30,8 @@ public class BubbleShieldEntity extends Entity {
 
     private BubbleShieldType type = BubbleShieldType.BASE;
     private boolean allowOthers = false;
+    private boolean hasTeleportedOwner = false;
+
 
     private final Set<UUID> reflectedProjectiles = new HashSet<>();
 
@@ -40,6 +42,7 @@ public class BubbleShieldEntity extends Entity {
     private boolean spawnSoundPlayed = false;
     private boolean retracting = false;
     private int retractAge = 0;
+
 
     public BubbleShieldEntity(World world, double x, double y, double z) {
         super(BUBBLE_SHIELD, world);
@@ -52,7 +55,7 @@ public class BubbleShieldEntity extends Entity {
         super(type, world);
         this.noClip = true;
         this.setNoGravity(true);
-        System.out.println("[HEAL] "+type);
+        System.out.println("[HEAL] " + type);
     }
 
     @Override
@@ -104,7 +107,27 @@ public class BubbleShieldEntity extends Entity {
                     continue;
                 }
 
+                // In Shield
                 if (distance <= SHIELD_RADIUS) {
+                    // Healing
+                    if (type == BubbleShieldType.HEALING && age % 20 == 0 && e instanceof PlayerEntity player) {
+                        if (isOwner(player.getUuid()) || allowOthers) {
+                            if (player.getHealth() < player.getMaxHealth()) {
+                                player.heal(2.0F);
+                            }
+                        }
+                    }
+
+                    // Teleport
+                    if (this.type == BubbleShieldType.TELEPORT && getAnimatedScale(0) >= 1.0f) {
+                        if (!hasTeleportedOwner) {
+                            TeleportHandler.tryTeleportOwnerOnly(this);
+                            hasTeleportedOwner = true;
+                        }
+                        TeleportHandler.tryTeleportOthers(this);
+                    }
+
+
                     if (e instanceof ProjectileEntity projectile) {
                         if (projectile.getOwner() instanceof LivingEntity owner) {
                             if (owner instanceof PlayerEntity player && isOwner(player.getUuid())) {
@@ -130,14 +153,7 @@ public class BubbleShieldEntity extends Entity {
                             }
                             knockBackEntity(e, toEntity);
                         }
-                        default -> {}
-                    }
-
-                    if (type == BubbleShieldType.HEALING && age % 20 == 0 && e instanceof PlayerEntity player) {
-                        if (isOwner(player.getUuid()) || allowOthers) {
-                            if (player.getHealth() < player.getMaxHealth()) {
-                                player.heal(2.0F);
-                            }
+                        default -> {
                         }
                     }
 
@@ -152,6 +168,11 @@ public class BubbleShieldEntity extends Entity {
     public void setType(BubbleShieldType type) {
         this.type = type;
     }
+
+    public BubbleShieldType getTypeEnum() {
+        return this.type;
+    }
+
 
     public float getAnimatedScale(float tickDelta) {
         if (retracting) {
@@ -178,6 +199,7 @@ public class BubbleShieldEntity extends Entity {
         this.retracting = nbt.getBoolean("Retracting");
         this.retractAge = nbt.getInt("RetractAge");
         this.allowOthers = nbt.getBoolean("AllowOthers");
+        this.hasTeleportedOwner = nbt.getBoolean("HasTeleportedOwner");
         if (nbt.contains("ShieldType")) this.type = BubbleShieldType.valueOf(nbt.getString("ShieldType"));
     }
 
@@ -190,6 +212,8 @@ public class BubbleShieldEntity extends Entity {
         nbt.putInt("RetractAge", retractAge);
         nbt.putBoolean("AllowOthers", allowOthers);
         nbt.putString("ShieldType", type.name());
+        nbt.putBoolean("HasTeleportedOwner", hasTeleportedOwner);
+
     }
 
     @Override
@@ -217,7 +241,11 @@ public class BubbleShieldEntity extends Entity {
         this.ownerUuid = uuid;
     }
 
-    private boolean isOwner(UUID uuid) {
+    public @Nullable UUID getOwnerUuid(){
+        return ownerUuid;
+    }
+
+    public boolean isOwner(UUID uuid) {
         return ownerUuid != null && ownerUuid.equals(uuid);
     }
 
@@ -237,5 +265,9 @@ public class BubbleShieldEntity extends Entity {
                     SoundEvents.ITEM_SHIELD_BLOCK, SoundCategory.BLOCKS, 1.0f, 1.0f);
             reflectedProjectiles.add(projectile.getUuid());
         }
+    }
+
+    public boolean allowsOthers() {
+        return allowOthers;
     }
 }

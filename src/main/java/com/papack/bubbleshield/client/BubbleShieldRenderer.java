@@ -1,6 +1,7 @@
 package com.papack.bubbleshield.client;
 
 import com.papack.bubbleshield.BubbleShieldEntity;
+import com.papack.bubbleshield.BubbleShieldType;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.model.*;
@@ -13,7 +14,7 @@ import net.minecraft.util.Identifier;
 @Environment(EnvType.CLIENT)
 public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
 
-    private static final Identifier TEXTURE = Identifier.of("bubbleshield", "textures/entity/bubble_shield.png");
+    private static final Identifier TEXTURE = Identifier.of("bubbleshield", "textures/entity/bubble_shield_base.png");
     private final ModelPart cube;
 
     public BubbleShieldRenderer(EntityRendererFactory.Context ctx) {
@@ -65,19 +66,27 @@ public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
     public void render(BubbleShieldEntity entity, float yaw, float tickDelta,
                        MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
 
-        float progress = entity.getAnimatedScale(tickDelta); // 0.0 ～ 1.0
+        float progress = entity.getAnimatedScale(tickDelta);
         float scale = 4.0f * progress;
 
         matrices.push();
-        matrices.translate(0, 1.0f, 0); // プレイヤー中心に合わせる
+        matrices.translate(0, 1.0f, 0);
         matrices.scale(scale, scale, scale);
 
-        VertexConsumer vc = vertexConsumers.getBuffer(BUBBLE_LAYER);
-        cube.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
+        // テレポートタイプかどうかでレイヤー切り替え
+        VertexConsumer vc;
+        if (entity.getTypeEnum() == BubbleShieldType.TELEPORT) {
+            vc = vertexConsumers.getBuffer(TELEPORT_LAYER);
+        } else {
+            vc = vertexConsumers.getBuffer(BUBBLE_LAYER);
+        }
 
+        cube.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
         matrices.pop();
+
         super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
     }
+
 
     @Override
     public Identifier getTexture(BubbleShieldEntity entity) {
@@ -93,6 +102,25 @@ public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
             true,
             RenderLayer.MultiPhaseParameters.builder()
                     .program(RenderPhase.ENTITY_TRANSLUCENT_EMISSIVE_PROGRAM)
+                    .texture(new RenderPhase.Texture(TEXTURE, false, false))
+                    .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
+                    .cull(RenderPhase.DISABLE_CULLING)
+                    .lightmap(RenderPhase.ENABLE_LIGHTMAP)
+                    .overlay(RenderPhase.ENABLE_OVERLAY_COLOR)
+                    .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
+                    .target(RenderPhase.ITEM_ENTITY_TARGET)
+                    .build(false)
+    );
+
+    private static final RenderLayer TELEPORT_LAYER = RenderLayer.of(
+            "teleport_bubble_layer",
+            VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL,
+            VertexFormat.DrawMode.QUADS,
+            1536,
+            true,
+            true,
+            RenderLayer.MultiPhaseParameters.builder()
+                    .program(RenderPhase.END_PORTAL_PROGRAM)
                     .texture(new RenderPhase.Texture(TEXTURE, false, false))
                     .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
                     .cull(RenderPhase.DISABLE_CULLING)

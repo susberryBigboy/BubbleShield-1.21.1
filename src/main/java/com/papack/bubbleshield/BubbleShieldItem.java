@@ -24,24 +24,38 @@ public class BubbleShieldItem extends Item {
         if (!world.isClient) {
             if (!user.getItemCooldownManager().isCoolingDown(this)) {
                 boolean isSneaking = user.isSneaking();
-                boolean isHealingItem = (shieldType == BubbleShieldType.HEALING);
+                //boolean isHealingItem = ((stack.getItem() instanceof BubbleShieldItem shieldItem) && (shieldItem.shieldType == BubbleShieldType.HEALING));
 
-                if ((throwable)) {
-                    // 投擲タイプ
-                    ThrownBubbleShieldEntity thrown = new ThrownBubbleShieldEntity(world, user);
-                    thrown.setItem(stack);
-                    thrown.setOwner(user);
-                    thrown.setAllowOthers(isSneaking);
-                    thrown.setType(BubbleShieldType.THROWN);
-                    world.spawnEntity(thrown);
-                } else {
-                    // 設置タイプ（ベース）
-                    BubbleShieldEntity shield = new BubbleShieldEntity(world, user.getX(), user.getY(), user.getZ());
-                    shield.setOwner(user.getUuid());
-                    shield.setAllowOthers(isSneaking);
-                    shield.setType(isHealingItem ? BubbleShieldType.HEALING : BubbleShieldType.BASE);
-                    world.spawnEntity(shield);
+                switch (shieldType) {
+
+                    case THROWN -> {
+                        // 投擲タイプ
+                        ThrownBubbleShieldEntity thrown = new ThrownBubbleShieldEntity(world, user);
+                        thrown.setItem(stack.copy());
+                        thrown.setOwner(user);
+                        thrown.setType(BubbleShieldType.THROWN);
+                        // 向いている方向に投げる速度を与える
+                        thrown.setVelocity(
+                                user,
+                                user.getPitch(),
+                                user.getYaw(),
+                                0.0f,     // roll（回転）は使わない
+                                1.5f,     // スピード（推奨: 1.5f～2.0f）
+                                1.0f      // 精度（0が一番正確）
+                        );
+                        world.spawnEntity(thrown);
+                    }
+
+                    case BASE, HEALING, TELEPORT -> {
+                        // 設置タイプ（ベース）
+                        BubbleShieldEntity shield = new BubbleShieldEntity(world, user.getX(), user.getY(), user.getZ());
+                        shield.setOwner(user.getUuid());
+                        shield.setAllowOthers(isSneaking);
+                        shield.setType(shieldType);
+                        world.spawnEntity(shield);
+                    }
                 }
+
 
                 if (!user.getAbilities().creativeMode) {
                     stack.decrement(1);
