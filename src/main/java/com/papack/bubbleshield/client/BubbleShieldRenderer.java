@@ -14,7 +14,10 @@ import net.minecraft.util.Identifier;
 @Environment(EnvType.CLIENT)
 public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
 
-    private static final Identifier TEXTURE = Identifier.of("bubbleshield", "textures/entity/bubble_shield_base.png");
+    private static final Identifier TEXTURE_BASE = Identifier.of("bubbleshield", "textures/entity/bubble_shield.png");
+    private static final Identifier TEXTURE_HEAL = Identifier.of("bubbleshield", "textures/entity/bubble_shield_heal.png");
+    private static final Identifier TEXTURE_TELEPORT = Identifier.of("bubbleshield", "textures/entity/bubble_shield_teleport.png");
+    private static final Identifier TEXTURE_THROWABLE = Identifier.of("bubbleshield", "textures/entity/bubble_shield_throwable.png");
     private final ModelPart cube;
 
     public BubbleShieldRenderer(EntityRendererFactory.Context ctx) {
@@ -75,10 +78,11 @@ public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
 
         // テレポートタイプかどうかでレイヤー切り替え
         VertexConsumer vc;
-        if (entity.getTypeEnum() == BubbleShieldType.TELEPORT) {
-            vc = vertexConsumers.getBuffer(TELEPORT_LAYER);
-        } else {
-            vc = vertexConsumers.getBuffer(BUBBLE_LAYER);
+        switch (entity.getTypeEnum()) {
+            case TELEPORT -> vc = vertexConsumers.getBuffer(TELEPORT_LAYER);
+            case THROWN -> vc = vertexConsumers.getBuffer(BUBBLE_LAYER_THROWABLE);
+            case HEALING -> vc = vertexConsumers.getBuffer(BUBBLE_LAYER_HEAL);
+            default -> vc = vertexConsumers.getBuffer(BUBBLE_LAYER);
         }
 
         cube.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
@@ -90,7 +94,12 @@ public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
 
     @Override
     public Identifier getTexture(BubbleShieldEntity entity) {
-        return TEXTURE;
+        return switch (entity.getTypeEnum()) {
+            case TELEPORT -> TEXTURE_TELEPORT;
+            case THROWN -> TEXTURE_THROWABLE;
+            case HEALING -> TEXTURE_HEAL;
+            default -> TEXTURE_BASE;
+        };
     }
 
     private static final RenderLayer BUBBLE_LAYER = RenderLayer.of(
@@ -102,7 +111,45 @@ public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
             true,
             RenderLayer.MultiPhaseParameters.builder()
                     .program(RenderPhase.ENTITY_TRANSLUCENT_EMISSIVE_PROGRAM)
-                    .texture(new RenderPhase.Texture(TEXTURE, false, false))
+                    .texture(new RenderPhase.Texture(TEXTURE_BASE, false, false))
+                    .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
+                    .cull(RenderPhase.DISABLE_CULLING)
+                    .lightmap(RenderPhase.ENABLE_LIGHTMAP)
+                    .overlay(RenderPhase.ENABLE_OVERLAY_COLOR)
+                    .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
+                    .target(RenderPhase.ITEM_ENTITY_TARGET)
+                    .build(false)
+    );
+
+    private static final RenderLayer BUBBLE_LAYER_HEAL = RenderLayer.of(
+            "bubble_shield_layer",
+            VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL,
+            VertexFormat.DrawMode.QUADS,
+            1536,
+            true,
+            true,
+            RenderLayer.MultiPhaseParameters.builder()
+                    .program(RenderPhase.ENTITY_TRANSLUCENT_EMISSIVE_PROGRAM)
+                    .texture(new RenderPhase.Texture(TEXTURE_HEAL, false, false))
+                    .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
+                    .cull(RenderPhase.DISABLE_CULLING)
+                    .lightmap(RenderPhase.ENABLE_LIGHTMAP)
+                    .overlay(RenderPhase.ENABLE_OVERLAY_COLOR)
+                    .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
+                    .target(RenderPhase.ITEM_ENTITY_TARGET)
+                    .build(false)
+    );
+
+    private static final RenderLayer BUBBLE_LAYER_THROWABLE = RenderLayer.of(
+            "bubble_shield_layer",
+            VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL,
+            VertexFormat.DrawMode.QUADS,
+            1536,
+            true,
+            true,
+            RenderLayer.MultiPhaseParameters.builder()
+                    .program(RenderPhase.ENTITY_TRANSLUCENT_EMISSIVE_PROGRAM)
+                    .texture(new RenderPhase.Texture(TEXTURE_THROWABLE, false, false))
                     .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
                     .cull(RenderPhase.DISABLE_CULLING)
                     .lightmap(RenderPhase.ENABLE_LIGHTMAP)
@@ -120,8 +167,8 @@ public class BubbleShieldRenderer extends EntityRenderer<BubbleShieldEntity> {
             true,
             true,
             RenderLayer.MultiPhaseParameters.builder()
-                    .program(RenderPhase.END_PORTAL_PROGRAM)
-                    .texture(new RenderPhase.Texture(TEXTURE, false, false))
+                    .program(RenderPhase.END_GATEWAY_PROGRAM)
+                    .texture(new RenderPhase.Texture(TEXTURE_BASE, false, false))
                     .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
                     .cull(RenderPhase.DISABLE_CULLING)
                     .lightmap(RenderPhase.ENABLE_LIGHTMAP)
