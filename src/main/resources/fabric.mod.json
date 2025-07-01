@@ -7,7 +7,7 @@
   "authors": [],
   "contact": {},
   "license": "All-Rights-Reserved",
-  "icon": "assets/bubbleshield/icon.png",
+  "icon": "assets/bubbleshield/bubble_shield_logo.png",
   "environment": "*",
   "entrypoints": {
     "client": [
