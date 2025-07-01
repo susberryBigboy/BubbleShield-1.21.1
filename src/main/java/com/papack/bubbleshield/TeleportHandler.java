@@ -50,12 +50,19 @@ public class TeleportHandler {
         }
     }
 
-    private static boolean teleportPlayerIfValid(BubbleShieldEntity shield, ServerWorld serverWorld, ServerPlayerEntity player) {
-        BlockPos respawnPos = player.getSpawnPointPosition();
+    private static boolean teleportPlayerIfValid(BubbleShieldEntity shield, ServerWorld serverWorld, ServerPlayerEntity targetPlayer) {
+        UUID ownerUuid = shield.getOwnerUuid();
+        if (ownerUuid == null) return false;
+
+        ServerPlayerEntity ownerPlayer = serverWorld.getServer().getPlayerManager().getPlayer(ownerUuid);
+        if (ownerPlayer == null) return false;
+
+        // オーナーのリスポーン地点を取得
+        BlockPos respawnPos = ownerPlayer.getSpawnPointPosition();
         ServerWorld respawnWorld = serverWorld;
 
-        if (player.getSpawnPointDimension() != null) {
-            ServerWorld maybeWorld = serverWorld.getServer().getWorld(player.getSpawnPointDimension());
+        if (ownerPlayer.getSpawnPointDimension() != null) {
+            ServerWorld maybeWorld = serverWorld.getServer().getWorld(ownerPlayer.getSpawnPointDimension());
             if (maybeWorld != null) {
                 respawnWorld = maybeWorld;
             }
@@ -68,9 +75,11 @@ public class TeleportHandler {
 
         Vec3d targetPos = new Vec3d(respawnPos.getX() + 0.5, respawnPos.getY(), respawnPos.getZ() + 0.5);
 
+        // バブルの中に転送先があるならキャンセル
         if (shield.getBoundingBox().contains(targetPos)) return false;
 
-        player.teleport(respawnWorld, targetPos.x, targetPos.y, targetPos.z, player.getYaw(), player.getPitch());
+        // テレポートを確実に同期
+        targetPlayer.networkHandler.requestTeleport(targetPos.x, targetPos.y, targetPos.z, targetPlayer.getYaw(), targetPlayer.getPitch());
         return true;
     }
 }
