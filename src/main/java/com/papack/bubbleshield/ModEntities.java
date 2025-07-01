@@ -15,7 +15,7 @@ public class ModEntities {
                     Identifier.of(Bubbleshield.MOD_ID, "bubble_shield"),
                     FabricEntityTypeBuilder.<BubbleShieldEntity>create(SpawnGroup.MISC, BubbleShieldEntity::new)
                             .dimensions(EntityDimensions.fixed(1.0f, 1.0f))
-                            .trackRangeBlocks(10)
+                            .trackRangeBlocks(128)
                             .trackedUpdateRate(20)
                             .build()
             );
@@ -26,7 +26,7 @@ public class ModEntities {
                     Identifier.of(Bubbleshield.MOD_ID, "thrown_bubble_shield"),
                     FabricEntityTypeBuilder.<ThrownBubbleShieldEntity>create(SpawnGroup.MISC, ThrownBubbleShieldEntity::new)
                             .dimensions(EntityDimensions.fixed(0.5f, 0.5f))
-                            .trackRangeBlocks(4)
+                            .trackRangeBlocks(128)
                             .trackedUpdateRate(10)
                             .build()
             );
