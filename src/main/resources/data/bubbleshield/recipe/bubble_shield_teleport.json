@@ -1,16 +1,13 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "GIG",
-    "IEI",
-    "GIG"
+    " E ",
+    " B ",
+    " E "
   ],
   "key": {
-    "G": {
-      "item": "minecraft:glass"
-    },
-    "I": {
-      "item": "minecraft:iron_ingot"
+    "B": {
+      "item": "bubbleshield:bubble_shield"
     },
     "E": {
       "item": "minecraft:ender_pearl"
@@ -18,6 +15,6 @@
   },
   "result": {
     "id": "bubbleshield:bubble_shield_teleport",
-    "count": 4
+    "count": 1
   }
 }
