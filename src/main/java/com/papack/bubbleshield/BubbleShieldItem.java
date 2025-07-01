@@ -9,7 +9,7 @@ import net.minecraft.world.World;
 
 public class BubbleShieldItem extends Item {
     private final BubbleShieldType shieldType;
-    private final boolean throwable;
+    private final boolean throwable;    // For future features
 
     public BubbleShieldItem(Settings settings, BubbleShieldType type, boolean throwable) {
         super(settings);
@@ -24,7 +24,6 @@ public class BubbleShieldItem extends Item {
         if (!world.isClient) {
             if (!user.getItemCooldownManager().isCoolingDown(this)) {
                 boolean isSneaking = user.isSneaking();
-                //boolean isHealingItem = ((stack.getItem() instanceof BubbleShieldItem shieldItem) && (shieldItem.shieldType == BubbleShieldType.HEALING));
 
                 switch (shieldType) {
 
