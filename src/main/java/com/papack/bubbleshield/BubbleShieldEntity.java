@@ -36,7 +36,6 @@ public class BubbleShieldEntity extends Entity {
     private boolean allowOthers = false;
     private boolean hasTeleportedOwner = false;
 
-
     private final Set<UUID> reflectedProjectiles = new HashSet<>();
 
     @Nullable
@@ -46,7 +45,6 @@ public class BubbleShieldEntity extends Entity {
     private boolean spawnSoundPlayed = false;
     private boolean retracting = false;
     private int retractAge = 0;
-
 
     public BubbleShieldEntity(World world, double x, double y, double z) {
         super(BUBBLE_SHIELD, world);
@@ -65,6 +63,11 @@ public class BubbleShieldEntity extends Entity {
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
         builder.add(TYPE, BubbleShieldType.BASE.name());
+    }
+
+    @Override
+    public boolean isOnFire() {
+        return false;
     }
 
     @Override
@@ -183,7 +186,6 @@ public class BubbleShieldEntity extends Entity {
         }
         return this.type;
     }
-
 
     public float getAnimatedScale(float tickDelta) {
         if (retracting) {
