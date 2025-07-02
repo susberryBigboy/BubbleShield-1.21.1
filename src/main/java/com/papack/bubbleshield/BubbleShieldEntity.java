@@ -9,6 +9,9 @@ import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.*;
+import net.minecraft.entity.projectile.thrown.EggEntity;
+import net.minecraft.entity.projectile.thrown.PotionEntity;
+import net.minecraft.entity.projectile.thrown.SnowballEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -135,8 +138,7 @@ public class BubbleShieldEntity extends Entity {
                         TeleportHandler.tryTeleportOthers(this);
                     }
 
-
-                    if (e instanceof ProjectileEntity projectile) {
+                    if (e instanceof ProjectileEntity projectile  ) {
                         if (projectile.getOwner() instanceof LivingEntity owner) {
                             if (owner instanceof PlayerEntity player && isOwner(player.getUuid())) {
                                 continue;
@@ -147,12 +149,31 @@ public class BubbleShieldEntity extends Entity {
                     switch (e) {
                         case ArrowEntity arrow -> handleProjectileReaction(arrow, center, toEntity);
                         case TridentEntity trident -> handleProjectileReaction(trident, center, toEntity);
+                        case EggEntity egg -> handleProjectileReaction(egg, center, toEntity);
+                        case SnowballEntity snowball -> handleProjectileReaction(snowball, center, toEntity);
+                        case PotionEntity potion -> handleProjectileReaction(potion, center, toEntity);
+                        case FireworkRocketEntity fireworkRocket -> {
+                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(), 0.1f, World.ExplosionSourceType.MOB);
+                            fireworkRocket.discard();
+                        }
+                        case DragonFireballEntity dragonFireball -> {
+                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(), 0.1f, World.ExplosionSourceType.MOB);
+                            dragonFireball.discard();
+                        }
+                        case WitherSkullEntity witherSkull -> {
+                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(), 0.1f, World.ExplosionSourceType.MOB);
+                            witherSkull.discard();
+                        }
                         case WindChargeEntity windCharge -> {
-                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(), 1.0f, World.ExplosionSourceType.MOB);
+                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(), 0.1f, World.ExplosionSourceType.MOB);
                             windCharge.discard();
                         }
+                        case BreezeWindChargeEntity breezeWindCharge -> {
+                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(), 0.1f, World.ExplosionSourceType.MOB);
+                            breezeWindCharge.discard();
+                        }
                         case FireballEntity fireball -> {
-                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(), 1.0f, World.ExplosionSourceType.MOB);
+                            e.getWorld().createExplosion(null, e.getX(), e.getY(), e.getZ(), 0.1f, World.ExplosionSourceType.MOB);
                             fireball.discard();
                         }
                         case LivingEntity living -> {
