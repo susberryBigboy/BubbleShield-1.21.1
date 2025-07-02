@@ -226,7 +226,6 @@ public class BubbleShieldEntity extends Entity {
         nbt.putBoolean("AllowOthers", allowOthers);
         nbt.putString("ShieldType", type.name());
         nbt.putBoolean("HasTeleportedOwner", hasTeleportedOwner);
-
     }
 
     @Override
