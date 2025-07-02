@@ -7,11 +7,11 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.Heightmap;
+import net.minecraft.world.TeleportTarget;
 
+import java.util.*;
 import java.util.List;
-import java.util.UUID;
-import java.util.HashSet;
-import java.util.Set;
 
 public class TeleportHandler {
 
@@ -57,29 +57,25 @@ public class TeleportHandler {
         ServerPlayerEntity ownerPlayer = serverWorld.getServer().getPlayerManager().getPlayer(ownerUuid);
         if (ownerPlayer == null) return false;
 
-        // オーナーのリスポーン地点を取得
-        BlockPos respawnPos = ownerPlayer.getSpawnPointPosition();
-        ServerWorld respawnWorld = serverWorld;
+        TeleportTarget teleportTarget = ownerPlayer.getRespawnTarget(true, TeleportTarget.NO_OP);
 
-        if (ownerPlayer.getSpawnPointDimension() != null) {
-            ServerWorld maybeWorld = serverWorld.getServer().getWorld(ownerPlayer.getSpawnPointDimension());
-            if (maybeWorld != null) {
-                respawnWorld = maybeWorld;
-            }
+        Vec3d targetPos;
+        ServerWorld targetWorld;
+
+        if (teleportTarget != null && !teleportTarget.missingRespawnBlock()) {
+            targetPos = teleportTarget.pos();
+            targetWorld = teleportTarget.world();
+        } else {
+            ServerWorld overworld = serverWorld.getServer().getOverworld();
+            BlockPos spawn = overworld.getSpawnPos();
+            int y = overworld.getTopY(Heightmap.Type.MOTION_BLOCKING, spawn.getX(), spawn.getZ());
+            targetPos = new Vec3d(spawn.getX() + 0.5, y, spawn.getZ() + 0.5);
+            targetWorld = overworld;
         }
 
-        if (respawnPos == null || !respawnWorld.getBlockState(respawnPos).isOpaque()) {
-            respawnWorld = serverWorld.getServer().getOverworld();
-            respawnPos = respawnWorld.getSpawnPos();
-        }
-
-        Vec3d targetPos = new Vec3d(respawnPos.getX() + 0.5, respawnPos.getY(), respawnPos.getZ() + 0.5);
-
-        // バブルの中に転送先があるならキャンセル
         if (shield.getBoundingBox().contains(targetPos)) return false;
 
-        // テレポートを確実に同期
-        targetPlayer.networkHandler.requestTeleport(targetPos.x, targetPos.y, targetPos.z, targetPlayer.getYaw(), targetPlayer.getPitch());
+        targetPlayer.teleport(targetWorld, targetPos.x, targetPos.y, targetPos.z, targetPlayer.getYaw(), targetPlayer.getPitch());
         return true;
     }
 }
